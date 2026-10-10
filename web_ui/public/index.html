@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MobileFineTuner - On-Device LLM Fine-Tuning Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
+  <header class="navbar">
+    <div class="brand">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>MobileFineTuner</h1>
+        <span class="brand-sub">Native C++ On-Device LLM Fine-Tuning</span>
+      </div>
+    </div>
+
+    <div class="nav-center">
+      <div class="status-pill" id="engineStatusPill">
+        <span class="status-dot"></span>
+        <span id="engineStatusText">ENGINE READY</span>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <button class="nav-btn" id="runTestsBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>Run Autograd Tests</span>
+      </button>
+      <a href="https://arxiv.org/abs/2512.08211" target="_blank" class="nav-link">arXiv:2512.08211</a>
+    </div>
+  </header>
+
+  <main class="dashboard-container">
+    <!-- Model Architecture Tabs -->
+    <section class="model-selector-bar">
+      <span class="selector-label">Target Model Architecture:</span>
+      <div class="model-tabs" id="modelTabs">
+        <button class="model-tab active" data-model="gpt2_small">
+          <span class="model-name">GPT-2 Small</span>
+          <span class="model-tag">124M</span>
+        </button>
+        <button class="model-tab" data-model="gpt2_medium">
+          <span class="model-name">GPT-2 Medium</span>
+          <span class="model-tag">355M</span>
+        </button>
+        <button class="model-tab" data-model="gemma_270m">
+          <span class="model-name">Gemma 3</span>
+          <span class="model-tag">270M</span>
+        </button>
+        <button class="model-tab" data-model="gemma_1b_pt">
+          <span class="model-name">Gemma 3 1B-PT</span>
+          <span class="model-tag">1.0B</span>
+        </button>
+        <button class="model-tab" data-model="qwen">
+          <span class="model-name">Qwen 2.5</span>
+          <span class="model-tag">0.5B</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Real-Time Use Case Presets Bar -->
+    <section class="presets-bar">
+      <div class="presets-header">
+        <span class="presets-badge">REAL-TIME USE CASES</span>
+        <span class="presets-desc">Select a production on-device fine-tuning scenario to auto-configure optimal parameters:</span>
+      </div>
+      <div class="presets-grid" id="presetsGrid">
+        <button class="preset-btn active" data-preset="personal_assistant">
+          <span class="preset-icon">📱</span>
+          <div class="preset-info">
+            <span class="preset-name">On-Device Personal Assistant</span>
+            <span class="preset-sub">GPT-2 (124M) • User Tone & Style Adaptation</span>
+          </div>
+        </button>
+        <button class="preset-btn" data-preset="domain_knowledge">
+          <span class="preset-icon">📚</span>
+          <div class="preset-info">
+            <span class="preset-name">Domain Knowledge Corpus</span>
+            <span class="preset-sub">Qwen 2.5 (0.5B) • WikiText-2 Technical Text</span>
+          </div>
+        </button>
+        <button class="preset-btn" data-preset="reasoning_qa">
+          <span class="preset-icon">🧠</span>
+          <div class="preset-info">
+            <span class="preset-name">On-Phone Reasoning & QA</span>
+            <span class="preset-sub">Gemma 3 (270M) • MMLU & ARC-C Multiple-Choice</span>
+          </div>
+        </button>
+        <button class="preset-btn" data-preset="privacy_medical">
+          <span class="preset-icon">🔒</span>
+          <div class="preset-info">
+            <span class="preset-name">Confidential Health / Forms</span>
+            <span class="preset-sub">Gemma 3 (1B-PT) • Zero Cloud Leakage (GDPR)</span>
+          </div>
+        </button>
+        <button class="preset-btn" data-preset="ultra_low_ram">
+          <span class="preset-icon">⚡</span>
+          <div class="preset-info">
+            <span class="preset-name">Ultra-Low RAM Embedded</span>
+            <span class="preset-sub">Gemma 270M • Rank=4, Alpha=8, Tiny Memory</span>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <!-- Main Content Layout -->
+    <div class="grid-layout">
+      <!-- Left Column: Controls & Configuration -->
+      <aside class="left-pane">
+        <!-- Hyperparameters Card -->
+        <div class="glass-card config-card">
+          <div class="card-header">
+            <div class="header-icon purple">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Training Hyperparameters</h3>
+              <p class="card-desc">LoRA & Optimizer Configuration</p>
+            </div>
+          </div>
+
+          <form id="trainForm" class="config-form">
+            <div class="form-group">
+              <div class="label-row">
+                <label for="stepRange">Training Steps</label>
+                <span class="range-value" id="stepsValue">5</span>
+              </div>
+              <input type="range" id="stepRange" min="1" max="25" value="5" step="1">
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="lrInput">Learning Rate (η)</label>
+                <select id="lrInput">
+                  <option value="0.0005" selected>5e-4 (Standard)</option>
+                  <option value="0.0003">3e-4 (Moderate)</option>
+                  <option value="0.0002">2e-4 (Low)</option>
+                  <option value="0.0001">1e-4 (Conservative)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="rankInput">LoRA Rank (r)</label>
+                <select id="rankInput">
+                  <option value="4">r = 4 (Ultra Lean)</option>
+                  <option value="8" selected>r = 8 (Recommended)</option>
+                  <option value="16">r = 16 (Expressive)</option>
+                  <option value="32">r = 32 (Heavy)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="alphaInput">LoRA Alpha (α)</label>
+                <select id="alphaInput">
+                  <option value="8">α = 8 (Scale: 1.0)</option>
+                  <option value="16" selected>α = 16 (Scale: 2.0)</option>
+                  <option value="32">α = 32 (Scale: 4.0)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="batchInput">Micro Batch Size</label>
+                <select id="batchInput">
+                  <option value="1">1 (On-Device Min)</option>
+                  <option value="2">2 (Balanced)</option>
+                  <option value="4" selected>4 (Optimal)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="cta-buttons">
+              <button type="submit" class="btn-primary" id="startBtn">
+                <span class="btn-spinner" id="btnSpinner"></span>
+                <span id="startBtnText">⚡ Launch Fine-Tuning</span>
+              </button>
+              <button type="button" class="btn-danger" id="stopBtn" disabled>
+                <span>⏹ Stop</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Model Specs Card -->
+        <div class="glass-card specs-card">
+          <div class="card-header">
+            <div class="header-icon cyan">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Model Architecture Specs</h3>
+              <p class="card-desc" id="specModelTitle">GPT-2 Small (124M)</p>
+            </div>
+          </div>
+          <div class="spec-grid" id="specGrid">
+            <div class="spec-item">
+              <span class="spec-label">Base Parameters</span>
+              <span class="spec-value" id="specParams">124,439,808</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">LoRA Target Modules</span>
+              <span class="spec-value" id="specModules">Q, V Attention</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">LoRA Trainable Params</span>
+              <span class="spec-value" id="specLoraParams">768 (~0.001%)</span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-label">Precision / Autograd</span>
+              <span class="spec-value highlight">FP32 / Topo-Engine</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Unit Tests Health Matrix Card -->
+        <div class="glass-card tests-card">
+          <div class="card-header">
+            <div class="header-icon green">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
+            <div class="flex-between">
+              <div>
+                <h3>Autograd Unit Test Matrix</h3>
+                <p class="card-desc">19 C++ Core Verification Targets</p>
+              </div>
+              <span class="badge-success" id="testsBadge">19 / 19 PASSED</span>
+            </div>
+          </div>
+          <div class="test-list" id="testList">
+            <!-- Populated dynamically -->
+            <div class="test-item-placeholder">Click "Run Autograd Tests" above to verify all C++ operators.</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right Column: Telemetry, Canvas Loss Curve & Terminal -->
+      <section class="right-pane">
+        <!-- Telemetry Metrics Bar -->
+        <div class="telemetry-bar">
+          <div class="telemetry-card">
+            <span class="telemetry-title">Current Loss</span>
+            <div class="telemetry-value" id="telLoss">--</div>
+            <span class="telemetry-sub" id="telLossDelta">Waiting for step 1...</span>
+          </div>
+          <div class="telemetry-card">
+            <span class="telemetry-title">Initial Loss</span>
+            <div class="telemetry-value" id="telInitLoss">--</div>
+            <span class="telemetry-sub">Baseline starting point</span>
+          </div>
+          <div class="telemetry-card">
+            <span class="telemetry-title">Gradient Norm</span>
+            <div class="telemetry-value" id="telGradNorm">--</div>
+            <span class="telemetry-sub">||g||₂ backprop norm</span>
+          </div>
+          <div class="telemetry-card">
+            <span class="telemetry-title">Step Progress</span>
+            <div class="telemetry-value" id="telStep">0 / 5</div>
+            <div class="mini-progress-bar">
+              <div class="mini-progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loss Convergence Canvas Card -->
+        <div class="glass-card chart-card">
+          <div class="card-header flex-between">
+            <div class="chart-header-left">
+              <div class="header-icon cyan">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 3v18h18"/>
+                  <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>
+                </svg>
+              </div>
+              <div>
+                <h3>Real-Time Loss Convergence Curve</h3>
+                <p class="card-desc">Cross-Entropy Loss vs Training Step</p>
+              </div>
+            </div>
+            <div class="chart-legend">
+              <span class="legend-dot"></span>
+              <span>Smooth Training Loss</span>
+            </div>
+          </div>
+          <div class="canvas-container">
+            <canvas id="lossCanvas" width="800" height="260"></canvas>
+            <div class="canvas-empty-state" id="canvasEmpty">
+              <span>Ready. Click "Launch Fine-Tuning" to observe convergence curve in real-time.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-Time C++ Terminal Output Card -->
+        <div class="glass-card terminal-card">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <span class="dot red"></span>
+              <span class="dot yellow"></span>
+              <span class="dot green"></span>
+            </div>
+            <span class="terminal-title">MobileFineTuner C++ Native Engine Telemetry Stream</span>
+            <div class="terminal-controls">
+              <button class="term-btn" id="clearLogBtn" title="Clear Console">Clear</button>
+              <button class="term-btn" id="copyLogBtn" title="Copy Output">Copy</button>
+            </div>
+          </div>
+          <div class="terminal-body" id="terminalOutput">
+            <div class="log-line system-msg">> MobileFineTuner engine connected to localhost:8080</div>
+            <div class="log-line system-msg">> Ready to execute C++ native on-device training jobs.</div>
+          </div>
+        </div>
+
+        <!-- Generated SafeTensors Artifacts Card -->
+        <div class="glass-card artifacts-card">
+          <div class="card-header">
+            <div class="header-icon purple">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Exported SafeTensors Adapters</h3>
+              <p class="card-desc">Saved LoRA Weights on Local Filesystem</p>
+            </div>
+          </div>
+          <div class="artifacts-table-wrap">
+            <table class="artifacts-table">
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Adapter File</th>
+                  <th>Size</th>
+                  <th>Timestamp</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="artifactsList">
+                <tr>
+                  <td colspan="5" style="text-align:center; color:#64748b; padding:16px;">Scanning artifacts...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
