@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediDocs AI — Hospital Document Intelligence & Clinical Workflow Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="light-theme">
+
+  <!-- ==================== HOSPITAL AUTHENTICATION & LOGIN PORTAL ==================== -->
+  <div id="auth-portal-view" class="auth-portal-overlay">
+    <div class="auth-card-container">
+      <div class="auth-header-section">
+        <div class="auth-brand-badge">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" class="auth-brand-icon">
+            <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14"/>
+          </svg>
+          <span class="auth-brand-name">Vero <span class="brand-badge">Pro</span></span>
+        </div>
+        <h1 class="auth-main-title">MediDocs AI Clinical Portal</h1>
+        <p class="auth-main-subtitle">Hospital Document Intelligence & Clinical Decision Workflow</p>
+      </div>
+
+      <div class="auth-panel-body">
+        <div id="login-error-alert" class="login-alert-box" style="display:none;"></div>
+
+        <form id="clinical-login-form" class="auth-login-form">
+          <div class="form-group">
+            <label for="login-username">Institutional Email or Staff ID</label>
+            <div class="input-icon-wrapper">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <input type="text" id="login-username" value="dr.chen@hospital.org" required placeholder="name@hospital.org or staff_id">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="login-password">Workstation Password</label>
+            <div class="input-icon-wrapper">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <input type="password" id="login-password" value="password123" required placeholder="Enter institutional password">
+            </div>
+          </div>
+
+          <div class="form-row-remember">
+            <label class="remember-checkbox-label">
+              <input type="checkbox" id="login-remember" checked>
+              <span>Remember workstation on this device</span>
+            </label>
+            <a href="#" id="auth-forgot-link" class="auth-link-text">Clearance Help</a>
+          </div>
+
+          <button type="submit" id="login-submit-btn" class="btn-auth-submit">
+            <span>Sign In to Clinical Workspace</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </form>
+
+        <div class="auth-divider-line">
+          <span>Or Choose Clinical Role Demo (1-Click Sign In)</span>
+        </div>
+
+        <div class="demo-personas-grid" id="demo-personas-grid">
+          <!-- Populated dynamically via app.js -->
+        </div>
+
+        <div class="auth-footer-security">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>HIPAA & HITRUST Security Enforced • 256-Bit TLS • Role-Based Clearance</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="app" class="app-container">
+
+    <!-- TOP GLOBAL HEADER -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand-logo" id="brand-home-btn" title="MediDocs AI Vero Pro Suite">
+          <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14"/>
+          </svg>
+          <span class="brand-title">Vero <span class="brand-badge">Pro</span></span>
+          <span class="system-subtitle">MediDocs AI</span>
+        </div>
+        <div class="header-divider"></div>
+        <button id="toggle-sidebar-btn" class="icon-btn" title="Toggle Navigation">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+        </button>
+        <button id="search-global-btn" class="icon-btn" title="Quick Policy Search">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+      </div>
+
+      <div class="header-center">
+        <div class="encounter-title-wrapper" title="Click to Rename Encounter">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" class="title-pen-icon"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <span id="current-encounter-title" class="editable-title" contenteditable="true" spellcheck="false">Shortness of Breath</span>
+          <span class="save-status-indicator" id="save-status-indicator">✓ Saved</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="session-timer-badge">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span id="session-timer-text">5 mins, 10 secs &nbsp;•&nbsp; 1:31 - 1:36 PM</span>
+        </div>
+        <div class="header-role-chip" id="open-role-modal-btn" title="Click to Switch Security Clearance Role">
+          <span class="role-dot"></span>
+          <span id="current-role-label">Attending Physician</span>
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+
+        <!-- Authenticated Clinician Profile Chip -->
+        <div class="user-profile-header-chip" id="user-profile-header-chip" title="Active Authenticated Clinician">
+          <span class="user-avatar-circle" id="user-avatar-initials">SC</span>
+          <div class="user-info-text">
+            <span class="user-display-name" id="user-display-name">Dr. Sarah Chen, MD</span>
+            <span class="user-dept-label" id="user-dept-label">Pulmonary Clinic</span>
+          </div>
+        </div>
+
+        <button id="theme-toggle-btn" class="icon-btn" title="Toggle Dark/Light Mode">
+          <svg id="theme-moon-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+
+        <button id="logout-btn" class="icon-btn-logout" title="Sign Out of Clinical Workstation" onclick="executeLogout()">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Sign Out</span>
+        </button>
+
+        <button id="toggle-assistant-btn" class="icon-btn" title="Toggle AI History Drawer">
+          <span class="btn-text">History</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN BODY GRID (3 PANELS) -->
+    <div class="app-workspace">
+
+      <!-- LEFT SIDEBAR: ENCOUNTERS & NAVIGATION -->
+      <aside class="sidebar-panel" id="sidebar-panel">
+        <div class="sidebar-actions">
+          <button id="new-encounter-btn" class="btn-primary-action" title="Create New Clinical Consultation">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>+ New Encounter</span>
+          </button>
+          <button id="quick-lightning-btn" class="icon-btn-highlight" title="Insert Rapid Clinical Note">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </button>
+        </div>
+
+        <!-- Encounters List grouped by Date -->
+        <div class="encounters-scroll" id="encounters-container">
+          <!-- Populated dynamically via app.js -->
+        </div>
+
+        <!-- Sidebar Bottom Navigation Dock -->
+        <div class="sidebar-bottom-nav">
+          <div class="nav-item" id="nav-evidence" title="Approved Hospital Policies & Document Viewer">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <span>Evidence</span>
+          </div>
+          <div class="nav-item" id="nav-templates" title="Standard Clinical Note Templates">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Templates</span>
+          </div>
+          <div class="nav-item" id="nav-snippets" title="Fast Clinical Exam Snippets">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+            <span>Snippets</span>
+          </div>
+          <div class="nav-item" id="nav-patients" title="Hospital Patients Directory & Demographics">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Patients</span>
+          </div>
+          <div class="nav-item nav-highlight" id="nav-eval" title="50-Question RAG Evaluation Benchmark Suite">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Evaluation</span>
+          </div>
+          <div class="nav-item nav-highlight" id="nav-mft" title="MobileFineTuner C++ LoRA Adaptation Lab">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <span>FineTuning Lab</span>
+          </div>
+          <div class="nav-item" id="nav-audit" title="Security & RBAC Access Audit Logs">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Audit Trail</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER PANEL: CLINICAL NOTE & DOCUMENTATION EDITOR -->
+      <main class="editor-panel">
+        
+        <!-- Top Documentation Tabs -->
+        <div class="editor-tabs-bar" id="editor-tabs-bar">
+          <button class="doc-tab" data-tab="context">Context & Record</button>
+          <button class="doc-tab active" data-tab="soap">SOAP <span class="tab-badge">•••</span></button>
+          <button class="doc-tab" data-tab="handout">Patient Handout</button>
+          <button class="doc-tab" data-tab="sicknote">Sick Note</button>
+          <button class="doc-tab tab-new" id="add-custom-tab-btn">+ Create Note</button>
+        </div>
+
+        <!-- Rich Text & Clinical Action Toolbar -->
+        <div class="editor-toolbar">
+          <div class="toolbar-group">
+            <button class="tool-btn" id="tool-undo" title="Undo (Ctrl+Z)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg></button>
+            <button class="tool-btn" id="tool-redo" title="Redo (Ctrl+Y)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg></button>
+          </div>
+          <div class="toolbar-sep"></div>
+          <div class="toolbar-group">
+            <button class="tool-btn" id="tool-bold" title="Bold (Ctrl+B)"><b>B</b></button>
+            <button class="tool-btn" id="tool-italic" title="Italic (Ctrl+I)"><i>I</i></button>
+            <button class="tool-btn" id="tool-underline" title="Underline (Ctrl+U)"><u>U</u></button>
+            <button class="tool-btn" id="tool-strike" title="Strikethrough"><s>S</s></button>
+          </div>
+          <div class="toolbar-sep"></div>
+          <div class="toolbar-group">
+            <button class="tool-btn tool-mic" id="tool-mic" title="Voice Dictation (Web Speech API)">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <button class="tool-btn" id="tool-patient-vars" title="Insert Patient Variables (Name, DOB, MRN)">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            </button>
+            <button class="tool-btn" id="tool-font-size" title="Cycle Typography (Heading/Normal)">
+              <span style="font-size: 13px; font-weight:600;">A<span style="font-size:10px;">三</span></span>
+            </button>
+          </div>
+          <div class="toolbar-sep"></div>
+          <div class="toolbar-group toolbar-right-group">
+            <button class="tool-btn-dropdown" id="tool-copy-btn" title="Copy Note to Clipboard">
+              <span>Copy</span>
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <button class="tool-btn" id="tool-export" title="Export Note to File (.txt)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+            <button class="tool-btn highlight-gold" id="tool-evidence-lamp" title="Verify Note Against Hospital Policies">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
+            </button>
+            <button class="tool-btn" id="tool-code-toggle" title="Toggle Clean Source View"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></button>
+          </div>
+        </div>
+
+        <!-- Note Editing Canvas -->
+        <div class="editor-content-area" id="editor-body" contenteditable="true" spellcheck="false">
+          <!-- Populated dynamically with clinical content & clickable citations -->
+        </div>
+
+        <!-- Bottom Feedback & Governance Bar -->
+        <footer class="editor-footer">
+          <div class="governance-disclaimer">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Draft generated for authorized clinical review. Answers must be verified against approved hospital policy.</span>
+          </div>
+          <div class="feedback-actions">
+            <span id="char-word-counter" class="counter-text">248 words • 1,420 chars</span>
+            <button class="feedback-btn" id="thumbs-up-btn" title="Helpful Clinical Draft">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+            </button>
+            <button class="feedback-btn" id="thumbs-down-btn" title="Flag Correction Request">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>
+            </button>
+          </div>
+        </footer>
+      </main>
+
+      <!-- RIGHT PANEL: AI ASSISTANT & EVIDENCE DRAWER -->
+      <aside class="assistant-panel" id="assistant-panel">
+        
+        <div class="assistant-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="assistant-header-title">History</span>
+            <span class="mini-status-chip">RAG Active</span>
+          </div>
+          <button class="icon-btn-subtle" id="close-assistant-btn" title="Close Assistant Panel">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="assistant-chat-stream" id="chat-messages">
+          
+          <!-- Hero Ethereal Orb & Greeting Banner (Visible when fresh/idle) -->
+          <div class="assistant-hero" id="assistant-hero-view">
+            <div class="ethereal-orb-container">
+              <div class="ethereal-orb"></div>
+            </div>
+            <h2 class="assistant-greeting">Good Afternoon</h2>
+            <p class="assistant-subgreeting">I'm your AI assistant, here to help</p>
+
+            <!-- Suggested Action Prompt Starters -->
+            <div class="suggested-prompts-list">
+              <button class="prompt-chip" data-query="Diagnose and summarize the patient's acute respiratory symptoms based on clinical guidelines.">
+                <span class="chip-icon">🩺</span>
+                <span>Diagnose a condition or symptom</span>
+              </button>
+              <button class="prompt-chip" data-query="Look up clinical guidelines for adult ambulatory asthma exacerbation in CLIN-FORM-022.">
+                <span class="chip-icon">📖</span>
+                <span>Look up clinical guidelines</span>
+              </button>
+              <button class="prompt-chip" data-query="Check drug interactions and dosing for Symbicort budesonide/formoterol in adult patients.">
+                <span class="chip-icon">💊</span>
+                <span>Check drug interactions and dosing</span>
+              </button>
+              <button class="prompt-chip" data-query="Research the mandatory bedside qSOFA criteria for adult sepsis screening under SOP-CLIN-012.">
+                <span class="chip-icon">🔬</span>
+                <span>Research a medical topic</span>
+              </button>
+              <button class="prompt-chip" data-query="Edit and simplify this clinical note into standardized concise medical documentation.">
+                <span class="chip-icon">📝</span>
+                <span>Edit and simplify your note</span>
+              </button>
+              <button class="prompt-chip highlight-chip" data-query="What is the procedure for reporting a medication storage temperature excursion?">
+                <span class="chip-icon">❄️</span>
+                <span>Temperature Excursion Procedure (Test Conflict)</span>
+              </button>
+              <button class="prompt-chip highlight-chip" data-query="Show me the confidential mechanical ventilation weaning and extubation protocol SOP-ICU-088.">
+                <span class="chip-icon">🔒</span>
+                <span>Mechanical Ventilation Weaning (Test RBAC)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Chat Dialogue Stream -->
+          <div class="chat-dialogue-list" id="chat-dialogue-list"></div>
+
+        </div>
+
+        <!-- Assistant Input Dock at Bottom -->
+        <div class="assistant-input-dock">
+          <div class="dock-controls">
+            <button class="dock-btn" id="upload-doc-dock-btn" title="Upload Hospital Policy PDF/TXT">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <div class="dock-dropdown-filter" id="dock-policy-filter" title="Click to Filter Policy Scope">
+              <span id="active-policy-filter-label">All Approved Policies</span>
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div class="dock-input-row">
+            <textarea id="assistant-input" rows="1" placeholder="What can I help you with?" spellcheck="false"></textarea>
+            <button class="dock-btn-mic" id="voice-input-btn" title="Voice Dictation Query">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <button class="dock-btn-send" id="send-query-btn" title="Send Query (Enter)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </aside>
+
+    </div>
+
+    <!-- ==================== MODALS SYSTEM ==================== -->
+
+    <!-- MODAL 1: EVIDENCE & DOCUMENT REPOSITORY / VIEWER -->
+    <div class="modal-overlay" id="modal-evidence">
+      <div class="modal-card modal-large">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3>Approved Hospital Policy Library & Evidence Viewer</h3>
+            <p>Indexed Standard Operating Procedures, Clinical Protocols & Department Policies</p>
+          </div>
+          <button class="modal-close-btn" data-close="modal-evidence">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="doc-upload-banner">
+            <div class="upload-info">
+              <strong>Upload New Approved Hospital Document</strong>
+              <p>Supports clinical PDFs and text guidelines. Ingestion extracts pages and assigns RBAC clearance.</p>
+            </div>
+            <label class="btn-primary-upload">
+              <input type="file" id="policy-file-input" accept=".pdf,.txt" style="display:none;">
+              <span>Select PDF / TXT Document</span>
+            </label>
+          </div>
+
+          <!-- Document Full-Text Viewer Panel (collapsible) -->
+          <div id="doc-viewer-container" class="doc-viewer-container" style="display:none;">
+            <div class="doc-viewer-header">
+              <div>
+                <strong id="viewer-doc-code" style="color:var(--primary-cyan); font-size:14px;"></strong>
+                <span id="viewer-doc-title" style="font-weight:600; margin-left:6px;"></span>
+              </div>
+              <button id="close-doc-viewer-btn" class="icon-btn-subtle">&times; Close Preview</button>
+            </div>
+            <div id="viewer-doc-content" class="doc-viewer-content"></div>
+          </div>
+
+          <div class="documents-table-wrapper">
+            <table class="documents-table">
+              <thead>
+                <tr>
+                  <th>Code</th>
+                  <th>Title</th>
+                  <th>Department</th>
+                  <th>Version</th>
+                  <th>Effective Date</th>
+                  <th>Access Level</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="documents-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: TEMPLATES MODAL -->
+    <div class="modal-overlay" id="modal-templates">
+      <div class="modal-card modal-large">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3>Approved Hospital Documentation Templates</h3>
+            <p>Insert standardized clinical notes, protocols, and incident forms into the editor</p>
+          </div>
+          <button class="modal-close-btn" data-close="modal-templates">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="templates-grid" id="templates-grid">
+            <!-- Dynamically populated via app.js -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: SNIPPETS MODAL -->
+    <div class="modal-overlay" id="modal-snippets">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3>Rapid Clinical Exam Snippets</h3>
+            <p>Click any phrase to insert directly at your editor cursor position</p>
+          </div>
+          <button class="modal-close-btn" data-close="modal-snippets">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="snippets-list" id="snippets-list">
+            <!-- Dynamically populated via app.js -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 4: PATIENTS DIRECTORY MODAL -->
+    <div class="modal-overlay" id="modal-patients">
+      <div class="modal-card modal-large">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3>Hospital Patient Directory</h3>
+            <p>Verified mock patient records, active diagnoses, allergies, and clinical encounters</p>
+          </div>
+          <button class="modal-close-btn" data-close="modal-patients">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="documents-table-wrapper">
+            <table class="documents-table">
+              <thead>
+                <tr>
+                  <th>MRN / ID</th>
+                  <th>Patient Name</th>
+                  <th>Demographics</th>
+                  <th>Department</th>
+                  <th>Primary Diagnosis</th>
+                  <th>Allergies</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="patients-table-body">
+                <!-- Dynamically populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 5: NEW ENCOUNTER DIALOG -->
+    <div class="modal-overlay" id="modal-new-encounter">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3>Create New Clinical Encounter</h3>
+            <p>Start a new consultation note in the hospital workflow</p>
+          </div>
+          <button class="modal-close-btn" data-close="modal-new-encounter">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="new-encounter-form" style="display:flex; flex-direction:column; gap:12px;">
+            <div>
+              <label style="font-size:12px; font-weight:600; color:var(--text-secondary);">Patient Name</label>
+              <input type="text" id="new-enc-patient" value="Eleanor Vance" required class="modal-input" placeholder="e.g. Eleanor Vance">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:var(--text-secondary);">Encounter / Chief Complaint</label>
+              <input type="text" id="new-enc-title" value="Acute Migraine with Aura" required class="modal-input" placeholder="e.g. Acute Migraine">
+            </div>
+            <div>
+              <label style="font-size:12px; font-weight:600; color:var(--text-secondary);">Timeline Category</label>
+              <select id="new-enc-category" class="modal-input">
+                <option value="TODAY">TODAY</option>
+                <option value="TUE MAR 31">TUE MAR 31</option>
+                <option value="MON MAR 30">MON MAR 30</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-primary-action" style="margin-top:6px;">+ Create and Open Note</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 6: ROLE SWITCHER & RBAC ENFORCEMENT -->
+    <div class="modal-overlay" id="modal-roles">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3>Security Clearance & RBAC Role</h3>
+            <p>Backend permissions determine document retrieval eligibility</p>
+          </div>
+          <button class="modal-close-btn" data-close="modal-roles">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="roles-selection-list" id="roles-selection-list">
+            <!-- Dynamically populated via app.js -->
+          </div>
+        </div>
+        <div class="modal-footer-action-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-top: 1px solid var(--border-light); background: var(--bg-subtle);">
+          <span style="font-size: 11.5px; color: var(--text-muted);">Active Clinician Session</span>
+          <button id="modal-logout-btn" class="icon-btn-logout" title="Sign out of clinical session" onclick="executeLogout()" style="color: #dc2626; border-color: #fca5a5; background: #fef2f2; font-weight: 600; padding: 6px 12px;">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Sign Out of Workstation</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 7: EVALUATION BENCHMARK DASHBOARD -->
+    <div class="modal-overlay" id="modal-eval">
+      <div class="modal-card modal-large">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3>RAG Quality Evaluation Dashboard</h3>
+            <p>50-Test Question Benchmark Suite measuring Recall, Faithfulness, Abstention & Access Safety</p>
+          </div>
+          <div class="modal-actions-group">
+            <button class="btn-run-eval" id="run-benchmark-btn">▶ Run 50-Test Suite</button>
+            <button class="modal-close-btn" data-close="modal-eval">&times;</button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <!-- Metric KPI Grid -->
+          <div class="kpi-metrics-grid" id="kpi-metrics-grid">
+            <div class="kpi-card">
+              <span class="kpi-title">Retrieval Recall@5</span>
+              <span class="kpi-value highlight-green" id="kpi-recall">100.0%</span>
+              <span class="kpi-target">Target: ≥ 85% (Passed)</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Citation Correctness</span>
+              <span class="kpi-value highlight-green" id="kpi-citation">100.0%</span>
+              <span class="kpi-target">Target: ≥ 95% (Passed)</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Answer Correctness</span>
+              <span class="kpi-value highlight-green" id="kpi-answer">100.0%</span>
+              <span class="kpi-target">Target: ≥ 85% (Passed)</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Unsupported Answer Rate</span>
+              <span class="kpi-value highlight-green" id="kpi-unsupported">0.0%</span>
+              <span class="kpi-target">Target: ≤ 5% (Zero Hallucination)</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Abstention F1 Score</span>
+              <span class="kpi-value highlight-green" id="kpi-abstain">100.0%</span>
+              <span class="kpi-target">High Precision & Recall</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Access Control Violations</span>
+              <span class="kpi-value highlight-green" id="kpi-rbac">0</span>
+              <span class="kpi-target">Target: 0 Disclosures</span>
+            </div>
+          </div>
+
+          <!-- Category Breakdown & Test List -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin: 18px 0 8px 0;">
+            <h4 style="font-size: 14px;">Granular Category Test Results</h4>
+            <div id="eval-filter-chips" class="eval-filters">
+              <button class="filter-chip active" data-cat="ALL">All (50)</button>
+              <button class="filter-chip" data-cat="Direct Policy Lookup">Direct Lookup</button>
+              <button class="filter-chip" data-cat="Multiple Passages Synthesis">Multi-Passage</button>
+              <button class="filter-chip" data-cat="Outdated Policy & Version Detection">Outdated</button>
+              <button class="filter-chip" data-cat="Conflicting Sources Resolution">Conflict</button>
+              <button class="filter-chip" data-cat="Unanswerable & Abstention">Abstention</button>
+              <button class="filter-chip" data-cat="RBAC Security Enforcement">RBAC</button>
+            </div>
+          </div>
+
+          <div class="eval-tests-table-wrapper">
+            <table class="documents-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Category</th>
+                  <th>Query</th>
+                  <th>Role</th>
+                  <th>Result</th>
+                  <th>Latency</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody id="eval-tests-table-body">
+                <!-- Dynamically populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 8: MOBILEFINETUNER LAB -->
+    <div class="modal-overlay" id="modal-mft">
+      <div class="modal-card modal-large">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3>MobileFineTuner Adaptation Lab</h3>
+            <p>Experimental C++ LoRA fine-tuning engine for institutional document formatting</p>
+          </div>
+          <button class="modal-close-btn" data-close="modal-mft">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="mft-lab-intro">
+            <p><strong>Architecture Separation:</strong> RAG retrieves up-to-date hospital policy facts. MobileFineTuner injects C++ native LoRA adapters (Rank=8, Alpha=16) into Attention and MLP layers to ensure rigid SOAP note formatting and institutional style without hallucinating.</p>
+          </div>
+
+          <!-- Interactive LoRA Hyperparameter Tuning Bar -->
+          <div class="mft-config-card">
+            <div class="config-row">
+              <div class="config-field">
+                <label>Base Model Architecture</label>
+                <select id="mft-model-select" class="modal-input">
+                  <option value="gpt2_small">GPT-2 Small (124M Parameters)</option>
+                  <option value="gpt2_medium">GPT-2 Medium (355M Parameters)</option>
+                  <option value="gemma_270m">Gemma-3 270M (Google GQA)</option>
+                  <option value="qwen_05b">Qwen2.5-0.5B (Alibaba RoPE)</option>
+                </select>
+              </div>
+              <div class="config-field">
+                <label>LoRA Rank (r): <strong id="val-rank">8</strong></label>
+                <input type="range" id="mft-rank-slider" min="4" max="32" step="4" value="8">
+              </div>
+              <div class="config-field">
+                <label>LoRA Alpha (α): <strong id="val-alpha">16</strong></label>
+                <input type="range" id="mft-alpha-slider" min="8" max="64" step="8" value="16">
+              </div>
+              <div class="config-field">
+                <label>Smoke Steps: <strong id="val-steps">5</strong></label>
+                <input type="range" id="mft-steps-slider" min="3" max="25" step="1" value="5">
+              </div>
+            </div>
+          </div>
+
+          <div class="mft-action-row">
+            <div class="mft-status-pill">
+              <span class="status-indicator-dot"></span>
+              <span id="mft-core-status-text">C++17 Core Engine Ready (liboperators.a)</span>
+            </div>
+            <button class="btn-run-eval" id="trigger-mft-train-btn">⚡ Run LoRA Adaptation Smoke</button>
+          </div>
+
+          <!-- Training Loss Animation Canvas -->
+          <div id="mft-loss-canvas-container" class="mft-loss-container" style="display:none;">
+            <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:4px;">
+              Live C++ Operator Loss Trajectory (Cross-Entropy LM Loss):
+            </div>
+            <div class="loss-badges-row" id="loss-badges-row"></div>
+          </div>
+
+          <!-- 3-Way Model Comparison Table (Required by Blueprint Section 8) -->
+          <h4 style="margin: 18px 0 10px 0; font-size: 14px;">3-Way Engineering Comparison: Baseline vs RAG vs LoRA</h4>
+          <div class="three-way-comparison-grid" id="three-way-comparison-grid">
+            <!-- Dynamically populated via app.js -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 9: AUDIT TRAIL LOGS -->
+    <div class="modal-overlay" id="modal-audit">
+      <div class="modal-card modal-large">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3>Hospital Information Security Audit Trail</h3>
+            <p>Immutable log of document queries, access control decisions & security enforcement</p>
+          </div>
+          <button class="modal-close-btn" data-close="modal-audit">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="eval-tests-table-wrapper">
+            <table class="documents-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>User Role</th>
+                  <th>Query</th>
+                  <th>Status</th>
+                  <th>Documents Retrieved</th>
+                  <th>Latency</th>
+                </tr>
+              </thead>
+              <tbody id="audit-table-body">
+                <!-- Dynamically populated via app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="global-toast" class="global-toast-container"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

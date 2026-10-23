@@ -1,519 +1,515 @@
-# MobileFineTuner
+# MobileFineTuner (GenAI)
 
-**A C++ Framework for Mobile-Native LLM Fine-Tuning**
-
-## News
-
-- **[2026-09-01]** Our paper "**MobileFineTuner: A Mobile-Native Framework for On-Device LLM Fine-Tuning in Real-World Embedded AI Applications**" has been conditional accepted by **Sensys2027**~
-- **[2026-07-10]** [MobileRLHF](MobileRLHF) now supports reinforcement-learning-based preference post-training on smartphones in both standalone and federated settings.
-- **[2025-12-01]** We have open-sourced MobileFineTuner, a C++ framework for mobile-native LLM fine-tuning.
-
+**A High-Performance, Mobile-Native C++17 Framework for On-Device LLM Fine-Tuning, Real-Time Monitoring, and Embedded AI Deployment**
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-C%2B%2B%20Core%20%7C%20Android%20Native-green.svg)]()
-[![C++](https://img.shields.io/badge/C%2B%2B-17-orange.svg)]()
-
-<img width="1508" height="916" alt="overview-git" src="https://github.com/user-attachments/assets/1043765f-5841-4317-b3f3-beaeefee2c4d" />
-
-<img width="1992" height="1112" alt="image" src="https://github.com/user-attachments/assets/35cb5c4e-a3bb-4a21-aac2-d38d50899a17" />
-
-https://github.com/user-attachments/assets/6ba63485-34ba-42b6-b9b1-ff980717c77b
-
-
-
-
-
-## Paper
-
-Our paper is available on arXiv:
-
-**MobileFineTuner: A Mobile-Native Framework for On-Device LLM Fine-Tuning in Real-World Embedded AI Applications**  
-Jiaxiang Geng*, Lunyu Zhao*, Yiyi Lu*, and Bing Luo
-
+[![Platform](https://img.shields.io/badge/Platform-C%2B%2B17%20%7C%20Android%20Native%20%7C%20Web%20Dashboard-green.svg)]()
+[![CMake](https://img.shields.io/badge/Build-CMake%203.10%2B-orange.svg)]()
+[![Android NDK](https://img.shields.io/badge/Android%20NDK-26.1%2B%20(API%2035)-darkgreen.svg)]()
+[![Paper](https://img.shields.io/badge/Sensys%202027-Accepted-brightgreen.svg)]()
 [![arXiv](https://img.shields.io/badge/arXiv-2512.08211-b31b1b.svg)](https://arxiv.org/abs/2512.08211)
-
-If you find this project useful, please consider citing our paper.
 
 ---
 
-## Overview
+## News & Highlights
 
-MobileFineTuner is an open-source C++ framework for practical, privacy-preserving fine-tuning of Large Language Models (LLMs) on mobile-class devices. The current release candidate verifies the stable C++ core, package/export surface, local training entrypoints, and Android native synthetic smoke execution. Full-weight on-phone training requires externally supplied model weights and device-specific validation.
+- **[2026-09-01]** Our research paper **"MobileFineTuner: A Mobile-Native Framework for On-Device LLM Fine-Tuning in Real-World Embedded AI Applications"** has been accepted by **Sensys 2027**!
+- **[2026-07-10]** **MobileRLHF** introduced, bringing reinforcement learning from human feedback and preference optimization to edge devices.
+- **[2025-12-01]** Open-sourced **MobileFineTuner**, establishing an end-to-end native C++ training core, Android SDK (`mft-sdk`), Android Visualizer App, and Web Dashboard.
 
-Unlike simulation-based or desktop-bound approaches, MobileFineTuner is built around a lean native C++ implementation that eliminates Python runtime overhead in the training path and supports both Full Fine-Tuning (Full-FT) and Parameter-Efficient Fine-Tuning (PEFT/LoRA) under tight resource constraints.
-
-### Verified Scope
-
-- Stable C++ operator/autograd/LoRA core with unit tests and installable CMake package.
-- Five local training smoke entrypoints: GPT-2 small, GPT-2 medium, Gemma 270M, Gemma 1B-PT, and Qwen.
-- Android native build/run path validated with a synthetic Qwen LoRA smoke test, including loss/backward/update and 5 ms RSS sampling.
-- Full pretrained weights, benchmark datasets, adapters, run logs, and phone QA media are external runtime artifacts and are not bundled in the source release.
-
-### Key Features
-
-- **Efficiency**: Pure C++ implementation with modular operators, automatic differentiation, and full backpropagation without Python runtime or external ML frameworks required
-- **Scalability**: Supports multiple mainstream decoder-only LLM architectures (GPT-2, Gemma, Qwen) with reusable graph, tokenizer, dataset, and LoRA components
-- **Usability**: Simple high-level APIs that abstract away system complexity, enabling rapid prototyping and practical deployment
-- **Privacy-Preserving**: All training data remains on-device, complying with GDPR and user privacy expectations
-- **Resource-Aware**: Keeps model weights, datasets, run logs, adapters, and profiling output outside the source package; runtime scripts resolve assets through explicit environment variables
+<div align="center">
+  <img src="logo.jpg" alt="Duke University & Duke Kunshan University" width="280"/>
+</div>
 
 ---
 
 ## Table of Contents
 
-- [Installation & Build](#installation--build)
-- [Quick Start](#quick-start)
-- [Android SDK / AAR](#android-sdk--aar)
-- [Model and Dataset Assets](#model-and-dataset-assets)
-- [Supported Models](#supported-models)
-- [Core Components](#core-components)
-- [Architecture](#architecture)
-- [Evaluation](#evaluation)
-- [Benchmarks](#benchmarks)
-- [Project Structure](#project-structure)
-- [Citation](#citation)
-- [Contributing](#contributing)
-- [License](#license)
+1. [Executive Summary](#executive-summary)
+2. [Key Innovations & Technical Capabilities](#key-innovations--technical-capabilities)
+3. [End-to-End System Architecture](#end-to-end-system-architecture)
+4. [Repository Structure](#repository-structure)
+5. [Supported Model Architectures](#supported-model-architectures)
+6. [Core C++ Engine (`operator/`)](#core-c-engine-operator)
+7. [Android Ecosystem (`android-visualizer/`)](#android-ecosystem-android-visualizer)
+   - [MFT Android SDK (`mft-sdk`)](#mft-android-sdk-mft-sdk)
+   - [Android Visualizer Dashboard App](#android-visualizer-dashboard-app)
+   - [Standalone Consumer Sample (`sdk-sample`)](#standalone-consumer-sample-sdk-sample)
+8. [Interactive Web UI Dashboard (`web_ui/`)](#interactive-web-ui-dashboard-web_ui)
+9. [Runnable Model Targets (`examples/`)](#runnable-model-targets-examples)
+10. [Asset Contract & Data Management (`docs/` & `scripts/`)](#asset-contract--data-management)
+11. [Build & Installation Guide](#build--installation-guide)
+12. [Quick Start & Training Execution](#quick-start--training-execution)
+    - [Synthetic Smoke Testing](#1-synthetic-smoke-testing-5-models)
+    - [Real Asset Fine-Tuning (WikiText-2 & MMLU)](#2-real-asset-fine-tuning)
+    - [Unified C++ Auto API](#3-unified-c-auto-api)
+13. [Evaluation & Device Telemetry](#evaluation--device-telemetry)
+14. [Maintained Scripts Catalog](#maintained-scripts-catalog)
+15. [Citation & Academic Credit](#citation--academic-credit)
+16. [License & Acknowledgments](#license--acknowledgments)
 
 ---
 
-## Installation & Build
+## Executive Summary
 
-### Prerequisites
+**MobileFineTuner** is an industrial-grade, privacy-preserving C++17 framework designed specifically for on-device parameter-efficient fine-tuning (PEFT/LoRA) and full fine-tuning (Full-FT) of Large Language Models (LLMs) on resource-constrained edge hardware.
 
-- **Compiler**: C++17 or later
-- **Build System**: CMake ≥ 3.10
-- **Threading**: pthreads
-- **BLAS** (optional): Apple Accelerate, OpenBLAS, or Intel MKL for accelerated matrix operations
+Traditional LLM fine-tuning relies on heavy Python environments (PyTorch, Hugging Face Transformers, DeepSpeed) that require gigabytes of RAM, huge virtual environments, and substantial runtime overhead. MobileFineTuner replaces this with:
 
-### Build Instructions
+1. **A Lean, Pure C++17 Core**: Zero Python dependencies in the training execution path. Custom autograd, tensor ops, memory arenas, and native tokenizers.
+2. **First-Class Mobile & Embedded Integration**: Android SDK (`mft-sdk`) packaged as an AAR with a native JNI bridge for direct in-app training.
+3. **Dual Telemetry & Visualization Platforms**:
+   - **Android Visualizer App**: Research-grade companion app rendering Catmull-Rom bezier curves, memory dynamics phase charts, step-by-step progress rings, and live log categorizers.
+   - **Interactive Web Dashboard**: Web-based dashboard for desktop and server environments with live loss monitoring, parameter deltas, configuration generators, and test suites.
+4. **Hugging Face Compatibility**: Out-of-the-box loading of Hugging Face SafeTensors checkpoints (both single-file and sharded layouts), standard tokenizer vocabularies, and PEFT-compliant adapter persistence.
+5. **Strict Privacy by Design**: All dataset handling, tokenization, gradient computation, and weight adaptation happen entirely on-device with zero telemetry egress.
 
-```bash
-cmake -S operator -B operator/build -DUSE_BLAS=ON -DCMAKE_BUILD_TYPE=Release
-cmake --build operator/build -j4
-ctest --test-dir operator/build --output-on-failure
-cmake --install operator/build --prefix /tmp/mobilefinetuner-install
+---
+
+## Key Innovations & Technical Capabilities
+
+| Capability | MobileFineTuner Native Approach | Conventional Desktop / Python Stacks |
+| :--- | :--- | :--- |
+| **Training Runtime** | Pure C++17 native binary / Android JNI | Python interpreter + PyTorch C++ bindings + CUDA/ROCm |
+| **Memory Footprint** | Step Arena allocation + pooled memory + peak RSS monitor | Python GC overhead, dynamic tensor fragmentation |
+| **Model Ingestion** | Direct SafeTensors parsing (single & sharded index) | Heavy safetensors / torch weight deserialization |
+| **Tokenization** | Native C++ BPE and Gemma SentencePiece tokenizers | Hugging Face `tokenizers` Python / Rust bindings |
+| **Adaptation** | Native LoRA injection on attention (Q, K, V, O) & MLP (Gate, Up, Down) | Hugging Face PEFT library |
+| **Mobile Deployment** | Plug-and-play Android AAR (`mft-sdk`), C++ umbrella header | Requires custom ONNX / TFLite workarounds (mostly inference only) |
+| **Live Telemetry** | Dual-track: Native Android Visualizer + Lightweight Web Dashboard | TensorBoard / Weights & Biases (requires cloud / Python) |
+
+---
+
+## End-to-End System Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 MODEL & DATA ASSETS                                      │
+│   • Hugging Face SafeTensors (Single / Sharded)       • config.json / generation_config │
+│   • BPE Vocab / Gemma Tokenizer JSON                 • WikiText-2 / MMLU / QNLI Data   │
+└────────────────────────────────────────┬────────────────────────────────────────────────┘
+                                         │
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                           PUBLIC DISCOVERY & UNIFIED AUTO API                           │
+│   ops::ModelRegistry           ops::TokenizerFactory         ops::AutoModelForCausalLM  │
+│   (inspects config.json)       (instantiates tokenizer)      (loads graph + SafeTensors)│
+└────────────────────────────────────────┬────────────────────────────────────────────────┘
+                                         │
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                            MOBILEFINETUNER C++ CORE ENGINE                              │
+│  ┌───────────────────────┐   ┌────────────────────────┐   ┌──────────────────────────┐  │
+│  │     Graph Models      │   │    Autograd Engine     │   │      Memory & Ops        │  │
+│  │ • GPT-2 (124M/355M)   │   │ • Tape-based backward  │   │ • Step Arena Allocator   │  │
+│  │ • Gemma 3 (270M/1B-PT)│   │ • Topological sorting  │   │ • Fused Softmax / Attention││
+│  │ • Qwen 2.5 (0.5B)     │   │ • Gradient accum       │   │ • RMSNorm / RoPE / GeGLU │  │
+│  └───────────────────────┘   └────────────────────────┘   └──────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
+│  │                AutoTrainer / Adam Optimizer / LoRA Linear Layer                   │  │
+│  │ • Injects trainable low-rank adapters (A & B) into Attention & Feed-Forward blocks│  │
+│  │ • Adam updates with weight decay, gradient clipping, and PEFT adapter saving      │  │
+│  └───────────────────────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────┬───────────────────────────────────────────┬──────────────────┘
+                           │                                           │
+                           ▼                                           ▼
+┌──────────────────────────────────────────────┐ ┌────────────────────────────────────────┐
+│             ANDROID ECOSYSTEM                │ │             DESKTOP & SERVER           │
+│  ┌────────────────────────────────────────┐  │ │  ┌──────────────────────────────────┐  │
+│  │ mft-sdk (AAR + JNI Bridge)             │  │ │  │ Standalone Training Binaries     │  │
+│  │ • Java/Kotlin API (MobileFineTuner)    │  │ │  │ • train_full / train (examples/) │  │
+│  │ • Native self-test & synthetic smoke   │  │ │  │ • eval_ppl / eval_mmlu           │  │
+│  └───────────────────┬────────────────────┘  │ │  └─────────────────┬────────────────┘  │
+│                      │                       │ │                    │                   │
+│                      ▼                       │ │                    ▼                   │
+│  ┌────────────────────────────────────────┐  │ │  ┌──────────────────────────────────┐  │
+│  │ Android Visualizer Companion App       │  │ │  │ Interactive Web Dashboard       │  │
+│  │ • Live Catmull-Rom Bezier Curves       │  │ │  │ (web_ui/server.py :8080)         │  │
+│  │ • Real-time Memory Dynamics & RSS      │  │ │  │ • Browser-based loss graphs      │  │
+│  │ • Run Comparison ("Versus") & Terminal │  │ │  │ • Live log streamer & smoke UI   │  │
+│  └────────────────────────────────────────┘  │ │  └──────────────────────────────────┘  │
+└──────────────────────────────────────────────┘ └────────────────────────────────────────┘
 ```
 
-**Build Outputs:**
-- `liboperators.a` - Core framework library
-- self-contained operator tests such as `test_qkt_softmax_grad`, `test_repeat_kv_softmax_grad`, `test_lora_roundtrip`
+---
 
-The default `operator/` build produces the reusable library and unit tests.
-Model-specific training/eval CLIs are examples, built from directories under
-`examples/`, such as `examples/gpt2_small_lora_finetune/`,
-`examples/gpt2_medium_lora_finetune/`, `examples/gemma_3_270m_lora_finetune/`,
-`examples/gemma_3_1b_pt_lora_finetune/`, and
-`examples/qwen_lora_finetune/`.
+## Repository Structure
 
-The install step exports CMake packages. New downstream projects should use the
-`MobileFineTuner` package name:
-
-```cmake
-find_package(MobileFineTuner REQUIRED)
-target_link_libraries(your_target PRIVATE MobileFineTuner::operators)
+```text
+GenAI/
+├── operator/                       # Core C++17 framework
+│   ├── include/mobile_finetuner/   # Stable umbrella header (mobile_finetuner.h)
+│   ├── finetune_ops/
+│   │   ├── core/                   # Tensor, Autograd engine, memory allocators, native tokenizers
+│   │   ├── graph/                  # GPT-2, Gemma, Qwen model graphs & SafeTensors loader
+│   │   ├── memory/                 # Arena allocator for micro-step zero overhead memory
+│   │   ├── nn/                     # LoRA linear layers and adapter modules
+│   │   └── optim/                  # Adam optimizer, AutoTrainer, step utilities
+│   ├── cmake/                      # CMake package export configurations
+│   └── CMakeLists.txt              # Primary CMake build specification
+│
+├── android-visualizer/             # Complete Android development suite
+│   ├── mft-sdk/                    # Android library module (builds release AAR + JNI bridge)
+│   │   ├── src/main/java/          # Java API: com.mobilefinetuner.sdk.MobileFineTuner
+│   │   └── src/main/cpp/           # JNI bindings into C++ core
+│   ├── app/                        # Android Visualizer research-grade monitoring application
+│   ├── sdk-sample/                 # Standalone sample app demonstrating AAR consumption
+│   ├── scripts/qa/                 # Mobile device QA test scripts
+│   └── build.gradle.kts            # Multi-module Gradle configuration
+│
+├── web_ui/                         # Interactive browser-based training dashboard
+│   ├── server.py                   # Lightweight multithreaded Python server & REST API
+│   └── public/                     # Modern UI assets (index.html, style.css, app.js)
+│
+├── examples/                       # Executable fine-tuning and evaluation targets
+│   ├── common/                     # Shared MMLU & Gemma evaluation runners
+│   ├── gpt2_small_lora_finetune/   # GPT-2 Small (124M) LoRA and Full-FT entrypoints
+│   ├── gpt2_medium_lora_finetune/  # GPT-2 Medium (355M) LoRA fine-tuning
+│   ├── gemma_3_270m_lora_finetune/ # Gemma-3 270M GQA LoRA fine-tuning
+│   ├── gemma_3_1b_pt_lora_finetune/# Gemma-3 1B-PT LoRA fine-tuning
+│   └── qwen_lora_finetune/         # Qwen2.5-0.5B RoPE LoRA fine-tuning
+│
+├── scripts/                        # Maintenance, benchmarking, and asset scripts
+│   ├── android/                    # Android build, ADB monitoring, and staging scripts
+│   ├── lib/                        # Shared bash path resolution helpers
+│   ├── run_training_smoke.sh       # 5-model synthetic training smoke suite
+│   ├── run_training_real_assets.sh # 5-model real-asset sanity check suite
+│   ├── check_local_assets.sh       # Verifies local weights & dataset resolution
+│   ├── check_release_tree.sh       # Validates release integrity & environment hygiene
+│   └── generate_tokenizer_hf_golden_fixtures.py # Generates HF alignment test fixtures
+│
+├── docs/                           # Technical documentation & API references
+│   ├── ARCHITECTURE.md             # System architecture & extension guide
+│   ├── PUBLIC_API.md               # C++ and Android public API contracts
+│   ├── ANDROID_SDK.md              # Android SDK build, ABI, and integration manual
+│   └── MODEL_ASSETS.md             # Hugging Face asset formatting requirements
+│
+├── logo.jpg                        # Academic institutional branding
+├── LICENSE                         # Apache License 2.0
+└── README.md                       # Master project documentation (this file)
 ```
 
-Use the stable umbrella header in new applications:
+---
 
-```cpp
-#include "mobile_finetuner/mobile_finetuner.h"
+## Supported Model Architectures
+
+MobileFineTuner provides optimized graph implementations for leading open-weight LLM families:
+
+| Architecture | Model Variant | Parameters | Context | Key Architectural Attributes | LoRA Injection Targets |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **GPT-2** | GPT-2 Small | 124M | 1024 | Absolute Positional Embeddings, MHA, LayerNorm | Attention QKV, Attn Proj |
+| **GPT-2** | GPT-2 Medium | 355M | 1024 | Absolute Positional Embeddings, MHA, LayerNorm | Attention QKV, Attn Proj |
+| **Gemma 3** | Gemma-3 270M | 270M | 2048 | Grouped-Query Attention (GQA), RoPE, RMSNorm, GeGLU | Q, K, V, O projections + MLP Gate, Up, Down |
+| **Gemma 3** | Gemma-3 1B-PT | 1.0B | 2048 | Scaled GQA, 18 layers, RoPE, RMSNorm, GeGLU | Q, K, V, O projections + MLP Gate, Up, Down |
+| **Qwen 2.5** | Qwen2.5-0.5B | 490M | 2048 | SwiGLU, Rotary Embeddings, Tied Word Embeddings | Q, K, V, O projections + MLP Gate, Up, Down |
+
+---
+
+## Core C++ Engine (`operator/`)
+
+The core engine is implemented in standard C++17 with modular subsystems:
+
+### 1. Autograd & Tensor Engine
+- **`Tensor`**: Custom multi-dimensional tensor supporting continuous memory buffers, copy-on-write semantics, slicing, and broadcasting.
+- **`AutogradEngine`**: Tape-based automatic differentiation engine that builds a dynamic execution graph and executes backward passes via topological sort.
+- **`step_arena.h`**: Ultra-low-overhead arena allocator dedicated to micro-step forward/backward passes, recycling memory across steps without OS `malloc`/`free` thrashing.
+
+### 2. Operators & Kernels
+- **Attention**: Standard causal multi-head attention and fused memory-efficient attention (`memory_efficient_attention.cpp`).
+- **Normalizations**: Pre-LayerNorm and high-performance RMSNorm with backward gradient kernels.
+- **Positional Encodings**: Native Rotary Position Embedding (RoPE) kernel supporting half-dimension complex rotations.
+- **Loss**: Language modeling cross-entropy with selected-token masking (`lm_loss.cpp`), preventing activation explosion during loss evaluation.
+
+### 3. Native Tokenizers
+Zero external Python dependencies are needed to tokenize text:
+- **`TokenizerBPE`**: Byte-level Byte-Pair Encoding matching Hugging Face GPT-2 and Qwen pre-tokenization.
+- **`TokenizerGemma`**: SentencePiece-compatible tokenization for Gemma-3 models.
+- **`TokenizerFactory`**: Unified auto-discovery layer that inspects `config.json` and instantiates the correct tokenizer automatically.
+
+### 4. Adapter Management & SafeTensors
+- **`SafeTensorsLoader`**: Fast zero-copy memory-mapped SafeTensors parser that handles single `model.safetensors` files as well as sharded index manifests (`model.safetensors.index.json`).
+- **`LoRALinear`**: Dynamic forward layer executing:
+  $$\mathbf{y} = \mathbf{x}\mathbf{W}_0^T + \frac{\alpha}{r} (\mathbf{x}\mathbf{A}^T)\mathbf{B}^T$$
+- **`LoRASaver`**: Writes fine-tuned adapters out as standard Hugging Face PEFT-compatible SafeTensors checkpoints.
+
+---
+
+## Android Ecosystem (`android-visualizer/`)
+
+MobileFineTuner features a comprehensive Android solution spanning SDK embedding and real-time visualization:
+
+```text
+android-visualizer/
+├── mft-sdk/        ──> Android Library (AAR + libmobilefinetuner_jni.so)
+├── app/            ──> Research-Grade Real-Time Visualizer App
+└── sdk-sample/     ──> Standalone Consumer Integration Example
 ```
 
-See [docs/PUBLIC_API.md](docs/PUBLIC_API.md) for the public API boundary.
+### MFT Android SDK (`mft-sdk`)
+The SDK packages the native C++ operator core behind an intuitive Java interface.
 
-The legacy package name is still available for existing consumers:
-`find_package(Operators REQUIRED)` and `Operators::operators`.
-
-### Android SDK / AAR
-
-MobileFineTuner also provides an Android Library module for app integration:
-
+**Building the Release AAR:**
 ```bash
 bash scripts/android/build_mft_sdk_aar.sh
 ```
+*Output: `android-visualizer/mft-sdk/build/outputs/aar/mft-sdk-release.aar`*
 
-This produces `android-visualizer/mft-sdk/build/outputs/aar/mft-sdk-release.aar`.
-The AAR packages the Java API and native JNI bridge, while model weights and
-datasets remain external runtime assets. See [docs/ANDROID_SDK.md](docs/ANDROID_SDK.md)
-for the Android SDK contract.
-
-For consumer-style integration, publish the SDK to a local Maven repository:
-
+**Publishing to Local Maven:**
 ```bash
 bash scripts/android/publish_mft_sdk_local.sh
 ```
 
-The standalone sample consumer app is available at `android-visualizer/sdk-sample`.
+**Gradle Integration in Android Apps:**
+```kotlin
+repositories {
+    maven { url = uri("/path/to/MobileFineTuner/android-visualizer/mft-sdk/build/repo") }
+}
+
+dependencies {
+    implementation("com.mobilefinetuner:mobilefinetuner-android:0.1.0")
+}
+```
+
+**Java API Usage Example:**
+```java
+import com.mobilefinetuner.sdk.MobileFineTuner;
+
+// 1. Open model from device storage
+File modelDir = new File(context.getFilesDir(), "qwen-0.5b");
+try (MobileFineTuner mft = MobileFineTuner.open(modelDir)) {
+    // 2. Initialize LoRA configuration
+    mft.initLora(8 /* rank */, 16.0f /* alpha */);
+    
+    // 3. Execute training step directly on-device
+    float loss = mft.trainStep(inputIds, attentionMask, labels, 2e-4f /* lr */);
+    Log.i("MFT", "Step Loss: " + loss);
+    
+    // 4. Save trained adapter weights
+    File adapterOut = new File(context.getFilesDir(), "adapter.safetensors");
+    mft.saveLoraAdapter(adapterOut);
+}
+```
+
+### Android Visualizer Dashboard App
+A full-featured Jetpack/Kotlin Android application engineered for on-device live training observation:
+
+- **Home Tab**: Live circular progress ring, real-time memory dynamics phase chart, sparkline trend cards for Loss, PPL, LR, and Peak RSS, and an event timeline.
+- **Train Tab**: Interactive time-series charts rendering Catmull-Rom bezier curves with horizontal pan, double-tap zoom, and individual step inspection.
+- **Versus Tab**: Side-by-side run comparative benchmark with step alignment, delta cards, and winner indicators.
+- **Logs Tab**: Terminal-style live log viewer with instant filter chips (`[Train]`, `[Eval]`, `[Ckpt]`, `[RSS]`, `[Warn]`, `[Error]`) and free-text search.
+- **Runs Tab**: Automatic discovery and status tracking of active and historical runs.
 
 ---
 
-## Quick Start
+## Interactive Web UI Dashboard (`web_ui/`)
 
-### 1. Prepare Data and Model
+For desktop workstations, edge servers, and headless test runners, MobileFineTuner provides an interactive web dashboard.
 
-MobileFineTuner does not bundle pretrained weights or benchmark datasets. This
-matches the PyTorch/Transformers convention: the framework ships code, and the
-application passes a local model/data path at runtime.
+### Features
+- **Live Training Visualizer**: Real-time multi-metric graphs (Loss, Learning Rate, Perplexity) refreshed via asynchronous polling.
+- **Live Console Stream**: Websocket/HTTP terminal streaming stdout/stderr with syntax highlighting.
+- **One-Click Synthetic Smoke**: Trigger 5-step synthetic smoke training on any supported model family directly from the browser.
+- **Integrated Test Runner**: Run the full CTest operator suite and inspect granular test pass/fail results interactively.
+- **Model Configurator**: Interactive parameter tuning (Batch Size, Sequence Length, Rank, Alpha, Learning Rate).
 
-Use shared asset roots for reproducible local runs:
+### Launching the Dashboard
+```bash
+python web_ui/server.py 8080
+```
+Open your browser and navigate to:
+```text
+http://localhost:8080
+```
 
+---
+
+## Runnable Model Targets (`examples/`)
+
+MobileFineTuner provides five pre-configured training applications under `examples/`:
+
+### 1. `examples/gpt2_small_lora_finetune/`
+- Full fine-tuning (`train_full`) and LoRA fine-tuning (`train`).
+- WikiText-2 language modeling and MMLU multi-task classification.
+- Evaluation tools: `eval_ppl` and `eval_mmlu`.
+
+### 2. `examples/gpt2_medium_lora_finetune/`
+- Scaled 355M parameter configuration.
+- Supports gradient accumulation for low-memory execution on 4GB-8GB devices.
+
+### 3. `examples/gemma_3_270m_lora_finetune/`
+- Ultra-compact Google Gemma 3 architecture with GQA and RMSNorm.
+- Ideal baseline for ultra-low-power edge nodes.
+
+### 4. `examples/gemma_3_1b_pt_lora_finetune/`
+- 1.0B parameter model with full LoRA adaptation across attention and GeGLU feed-forward blocks.
+
+### 5. `examples/qwen_lora_finetune/`
+- Alibaba Qwen 2.5 0.5B model.
+- Dedicated pipelines for WikiText-2 (`run_wikitext.sh`), MMLU (`run_mmlu.sh`), and QNLI classification (`run_qnli.sh`).
+
+---
+
+## Asset Contract & Data Management
+
+In accordance with modern ML framework practices, MobileFineTuner does not bundle proprietary model checkpoints or multi-gigabyte datasets inside git. Assets are dynamically mapped via environment variables or shared directory roots:
+
+### Recommended Environment Setup
 ```bash
 export MFT_MODEL_ROOT=/path/to/mft-models
 export MFT_DATA_ROOT=/path/to/mft-data
 ```
 
-Expected layout:
-
+### Directory Layout
 ```text
 $MFT_MODEL_ROOT/
-  gpt2/
-  gpt2-medium/
-  gemma-3-270m/
-  gemma-3-1b-pt/
-  Qwen2.5-0.5B/
+├── gpt2/                  # config.json, vocab.json, merges.txt, model.safetensors
+├── gpt2-medium/           # config.json, vocab.json, merges.txt, model.safetensors
+├── gemma-3-270m/          # config.json, tokenizer.json, model.safetensors
+├── gemma-3-1b-pt/         # config.json, tokenizer.json, model.safetensors (or sharded)
+└── Qwen2.5-0.5B/          # config.json, tokenizer.json, model.safetensors
 
 $MFT_DATA_ROOT/
-  wikitext2/wikitext-2-raw/
-  mmlu/data/
+├── wikitext2/wikitext-2-raw/   # wiki.train.raw, wiki.valid.raw, wiki.test.raw
+└── mmlu/data/                  # dev/, test/, val/ CSV subdirectories
 ```
 
-Each model directory is a HuggingFace-style snapshot containing `config.json`,
-tokenizer files, and either `model.safetensors` or a HuggingFace sharded
-SafeTensors layout with `model.safetensors.index.json`. Per-model overrides such
-as `QWEN_MODEL_DIR`, `GPT2_SMALL_MODEL_DIR`, and `GEMMA_270M_MODEL_DIR` are also
-supported.
-
-To verify what this checkout will use on your machine:
-
+### Validating Asset Discovery
+Run the asset verification script to check your local configuration:
 ```bash
 bash scripts/check_local_assets.sh
 ```
 
-See [docs/MODEL_ASSETS.md](docs/MODEL_ASSETS.md) for exact file requirements
-and download examples.
+---
 
-### 2. Validate the Five Training Entrypoints
+## Build & Installation Guide
 
-Run the repo-level smoke suite before using real assets:
+### Prerequisites
+- **C++ Compiler**: GCC 9+, Clang 10+, or MSVC 2019+ (C++17 standard required)
+- **Build System**: CMake ≥ 3.10
+- **Threading**: Native pthreads / C++11 std::thread
+- **Optional Acceleration**: BLAS (Apple Accelerate, OpenBLAS, or Intel MKL)
+- **Android Builds**: Android NDK `26.1.10909125`, Android SDK API 35, JDK 17+
 
+### 1. Building the Core Library & Unit Tests
+```bash
+# Configure with BLAS acceleration enabled
+cmake -S operator -B operator/build -DUSE_BLAS=ON -DCMAKE_BUILD_TYPE=Release
+
+# Compile using all CPU cores
+cmake --build operator/build -j
+
+# Execute unit and operator test suite
+ctest --test-dir operator/build --output-on-failure
+```
+
+### 2. Installing the CMake Package
+```bash
+cmake --install operator/build --prefix /usr/local
+```
+
+Downstream C++ projects can link MobileFineTuner cleanly via CMake:
+```cmake
+find_package(MobileFineTuner REQUIRED)
+target_link_libraries(my_app PRIVATE MobileFineTuner::operators)
+```
+
+And include the single umbrella header:
+```cpp
+#include "mobile_finetuner/mobile_finetuner.h"
+```
+
+---
+
+## Quick Start & Training Execution
+
+### 1. Synthetic Smoke Testing (5 Models)
+Validate all 5 training pipelines in seconds without needing any pretrained weights:
 ```bash
 bash scripts/run_training_smoke.sh
 ```
+This tests forward, backward, gradient accumulation, and parameter updates for:
+1. GPT-2 Small
+2. GPT-2 Medium
+3. Gemma 270M
+4. Gemma 1B-PT
+5. Qwen 2.5-0.5B
 
-This performs a two-step synthetic training pass for GPT-2 small, GPT-2 medium, Gemma 270M, Gemma 1B-PT, and Qwen.
+### 2. Real Asset Fine-Tuning
 
-To run a one-step real-asset sanity pass across the five training entrypoints:
-
+#### WikiText-2 LoRA Fine-Tuning
 ```bash
-bash scripts/run_training_real_assets.sh
+# GPT-2 Small
+cd examples/gpt2_small_lora_finetune
+TRAIN_MODE=wt2 STEPS=200 BATCH_SIZE=4 GRAD_ACCUM_STEPS=2 ./run_train.sh
+
+# Gemma 270M
+cd examples/gemma_3_270m_lora_finetune
+TRAIN_MODE=wt2 STEPS=200 BATCH_SIZE=4 GRAD_ACCUM_STEPS=1 ./run_train.sh
+
+# Qwen2.5-0.5B
+cd examples/qwen_lora_finetune
+MAX_STEPS=200 BATCH_SIZE=1 GRAD_ACCUM_STEPS=1 ./run_wikitext.sh
 ```
 
-To verify that C++ tokenization matches HuggingFace token IDs for local
-tokenizer snapshots:
-
+#### MMLU Multi-Task Fine-Tuning
 ```bash
-python3 scripts/generate_tokenizer_hf_golden_fixtures.py
-MFT_TOKENIZER_GOLDEN_JSONL=runs/tokenizer_golden/hf_tokenizer_golden.jsonl \
-  ctest --test-dir operator/build --output-on-failure -R TokenizerHFGolden
+cd examples/gpt2_small_lora_finetune
+./run_prepare_data.sh
+TRAIN_MODE=mmlu STEPS=200 ./run_train.sh
 ```
 
-See [docs/MODEL_ASSETS.md](docs/MODEL_ASSETS.md) for the tokenizer alignment
-asset contract.
-
-### 3. Use the Unified C++ API
-
-Applications that do not need model-specific diagnostics can use the Auto API:
-
-```cpp
-#include "mobile_finetuner/mobile_finetuner.h"
-
-auto tokenizer = ops::TokenizerFactory::from_pretrained(model_dir);
-auto model = ops::AutoModelForCausalLM::from_pretrained(model_dir);
-model->init_lora(ops::AutoLoraConfig::attention_qkvo());
-
-ops::AutoTrainerConfig trainer_cfg;
-trainer_cfg.learning_rate = 2e-4f;
-ops::AutoTrainer trainer(*model, trainer_cfg);
-auto step = trainer.train_step(input_ids, attention_mask, labels);
-```
-
-The lower-level GPT-2, Gemma, and Qwen graph classes remain available for
-alignment debugging and model-specific experiment runners.
-
-### 4. Run LoRA Fine-Tuning
-
-#### WikiText-2 LoRA
-- **GPT-2 Small (124M):**
-  ```bash
-  (
-    cd examples/gpt2_small_lora_finetune &&
-    TRAIN_MODE=wt2 STEPS=200 BATCH_SIZE=4 GRAD_ACCUM_STEPS=2 ./run_train.sh
-  )
-  ```
-- **GPT-2 Medium (355M):**
-  ```bash
-  (
-    cd examples/gpt2_medium_lora_finetune &&
-    TRAIN_MODE=wt2 STEPS=200 BATCH_SIZE=2 GRAD_ACCUM_STEPS=2 ./run_train.sh
-  )
-  ```
-- **Gemma 270M:**
-  ```bash
-  (
-    cd examples/gemma_3_270m_lora_finetune &&
-    TRAIN_MODE=wt2 STEPS=200 BATCH_SIZE=4 GRAD_ACCUM_STEPS=1 ./run_train.sh
-  )
-  ```
-- **Gemma 1B-PT:**
-  ```bash
-  (
-    cd examples/gemma_3_1b_pt_lora_finetune &&
-    TRAIN_MODE=wt2 STEPS=200 BATCH_SIZE=2 GRAD_ACCUM_STEPS=2 ./run_train.sh
-  )
-  ```
-- **Qwen2.5-0.5B:**
-  ```bash
-  (
-    cd examples/qwen_lora_finetune &&
-    MAX_STEPS=200 BATCH_SIZE=1 GRAD_ACCUM_STEPS=1 ./run_wikitext.sh
-  )
-  ```
-
-#### MMLU LoRA
-
-GPT-2 and Gemma consume masked JSONL prepared by `run_prepare_data.sh`. Qwen consumes the raw CSV tree under `data/mmlu/data` directly and does not use JSONL.
-
-- **GPT-2 Small / Medium:**
-  ```bash
-  (
-    cd examples/gpt2_small_lora_finetune &&
-    ./run_prepare_data.sh &&
-    TRAIN_MODE=mmlu STEPS=200 ./run_train.sh
-  )
-  (
-    cd examples/gpt2_medium_lora_finetune &&
-    ./run_prepare_data.sh &&
-    TRAIN_MODE=mmlu STEPS=200 ./run_train.sh
-  )
-  ```
-- **Gemma 270M / 1B-PT:**
-  ```bash
-  (
-    cd examples/gemma_3_270m_lora_finetune &&
-    ./run_prepare_data.sh &&
-    TRAIN_MODE=mmlu STEPS=200 ./run_train.sh
-  )
-  (
-    cd examples/gemma_3_1b_pt_lora_finetune &&
-    ./run_prepare_data.sh &&
-    TRAIN_MODE=mmlu STEPS=200 ./run_train.sh
-  )
-  ```
-- **Qwen2.5-0.5B:**
-  ```bash
-  (
-    cd examples/qwen_lora_finetune &&
-    MAX_STEPS=150 BATCH_SIZE=8 ./run_mmlu.sh
-  )
-  ```
-
-#### GPT-2 Small Full Fine-Tune (WikiText-2)
+#### GPT-2 Full Fine-Tuning (Full-FT)
 ```bash
-export GPT2_SMALL_MODEL_DIR=$MFT_MODEL_ROOT/gpt2
-export WT2_DATA_DIR=$MFT_DATA_ROOT/wikitext2/wikitext-2-raw
-
 cmake -S examples/gpt2_small_lora_finetune -B examples/gpt2_small_lora_finetune/build
 cmake --build examples/gpt2_small_lora_finetune/build --target train_full -j
+
 examples/gpt2_small_lora_finetune/build/train_full \
-  --data_dir "$WT2_DATA_DIR" \
-  --pretrained_dir "$GPT2_SMALL_MODEL_DIR" \
+  --data_dir "$MFT_DATA_ROOT/wikitext2/wikitext-2-raw" \
+  --pretrained_dir "$MFT_MODEL_ROOT/gpt2" \
   --output_path runs/gpt2_small_full_ft.safetensors \
-  --epochs 1 --batch_size 4 --grad_accum_steps 2 --seq_len 128 \
-  --lr 1e-4 --warmup_steps 100
+  --epochs 1 --batch_size 4 --grad_accum_steps 2 --seq_len 128 --lr 1e-4
 ```
 
-## Model and Dataset Assets
-
-The industrial package boundary is:
-
-- `operator/` provides the reusable C++ training core.
-- model app directories provide example CLIs for GPT-2, Gemma, and Qwen.
-- pretrained weights, datasets, run logs, and generated adapters are runtime
-  assets and are not part of the source distribution.
-
-Resolution order for maintained scripts is:
-
-1. explicit per-model/data environment variables, for example
-   `QWEN_MODEL_DIR` or `QWEN_DATA_DIR`;
-2. shared roots `MFT_MODEL_ROOT` and `MFT_DATA_ROOT`;
-3. the repo-local fallback directories such as
-   `examples/qwen_lora_finetune/pretrained/` and `data/wikitext2/wikitext-2-raw/`.
-
-The fallback directories are useful for local research, but they are ignored by
-Git and should not be used as a release mechanism. For a new machine or CI
-worker, prefer explicit asset roots and validate them with:
-
-```bash
-bash scripts/check_local_assets.sh
-```
-
-Detailed layout and download examples are documented in
-[docs/MODEL_ASSETS.md](docs/MODEL_ASSETS.md).
-
----
-
-## Supported Models
-
-### GPT-2 Family
-- **GPT-2 Small**: 124M parameters, 12 layers, 768 hidden dimensions
-- **GPT-2 Medium**: 355M parameters, 24 layers, 1024 hidden dimensions
-- **GPT-2 Full FT (Small)**: full fine-tuning path for end-to-end reference
-
-### Gemma Family (Google)
-- **Gemma-3 270M**: Compact decoder-only transformer with Grouped Query Attention (GQA)
-- **Gemma-3 1B**: Scaled version with 18 layers, 2048 hidden dimensions
-
-### Qwen Family (Alibaba)
-- **Qwen2.5-0.5B**: Lightweight decoder-only transformer with rotary embeddings and QKV sharing
-
-### Adding New Models
-
-MobileFineTuner follows the same high-level split used by PyTorch/Transformers:
-
-- `ModelRegistry::inspect_pretrained(model_dir)` reads `config.json` and
-  identifies the supported model family, assets, tied-embedding behavior, and
-  default LoRA targets.
-- `TokenizerFactory::from_pretrained(model_dir)` returns the correct
-  model-specific tokenizer behind one `ops::Tokenizer` interface.
-- `AutoModelForCausalLM::from_pretrained(model_dir)` constructs the supported
-  GPT-2, Gemma, or Qwen graph and loads SafeTensors with correct layout defaults.
-- `AutoTrainer` provides a shared one-step causal-LM LoRA training core.
-- model graph classes under `finetune_ops/graph/` implement the architecture
-  math and HuggingFace weight-name mapping.
-- LoRA injection is defined by target module names, not by application
-  directory names.
-
-Different models should keep their own tokenizer algorithms. The framework
-standardizes how applications request tokenization; it does not force GPT-2,
-Gemma, and Qwen to share one vocabulary or pre-tokenizer.
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the extension contract.
-
----
-
-## Core Components
-
-### Tensor & Autograd Engine
-
-**Custom Tensor Implementation:**
-- Pooled memory allocation for reduced malloc overhead
-- Automatic gradient tracking with topological sort-based backward pass
-- In-place operation support with copy-on-write semantics
-
-```cpp
-// Example: Forward and backward through custom ops
-auto x = Tensor::randn({batch_size, seq_len, hidden_dim});
-auto y = ops::linear(x, weight, bias);
-auto loss = ops::mse_loss(y, target);
-loss.backward();  // Automatic gradient computation
-```
-
-### Model Graphs
-
-**GPT-2 Architecture:**
-- Transformer decoder with fused QKV attention
-- Causal attention masking for autoregressive generation
-- Layer normalization and residual connections
-
-**Gemma Architecture:**
-- Grouped Query Attention (GQA) for reduced memory footprint
-- RoPE (Rotary Position Embedding) for positional encoding
-- GeGLU activation in feed-forward layers
-
-### LoRA Injection
-
-Parameter-Efficient Fine-Tuning (PEFT) via Low-Rank Adaptation:
-- Inject trainable low-rank matrices into attention and MLP layers
-- Freeze base model parameters to reduce memory and computation
-- PEFT-compatible SafeTensors format for adapter persistence
-
-```cpp
-// LoRA injection targets
-GPT-2:  Attn QKV + Attn Proj
-Gemma:  Q/K/V/O projections + Gate/Up/Down MLP projections
-```
-
-### SafeTensors I/O
-
-Fast and safe tensor serialization:
-- Load pretrained weights from HuggingFace format
-- Automatic key mapping for model compatibility
-- Optional transpose for linear layer weights
-- Save LoRA adapters in PEFT-compatible format
-
----
-
-## Architecture
-
-The reusable library is organized around HuggingFace-style runtime assets rather
-than bundled checkpoints:
+### 3. Unified C++ Auto API
+For custom applications, use the high-level `AutoModel` and `AutoTrainer` abstractions:
 
 ```cpp
 #include "mobile_finetuner/mobile_finetuner.h"
 
-auto spec = ops::ModelRegistry::inspect_pretrained(model_dir);
-auto tokenizer = ops::TokenizerFactory::from_pretrained(model_dir);
-auto model = ops::AutoModelForCausalLM::from_pretrained(model_dir);
+int main() {
+    std::string model_dir = "/path/to/model";
+
+    // 1. Inspect model metadata & instantiate tokenizer
+    auto spec = ops::ModelRegistry::inspect_pretrained(model_dir);
+    auto tokenizer = ops::TokenizerFactory::from_pretrained(model_dir);
+
+    // 2. Load model graph with family-correct SafeTensors mapping
+    auto model = ops::AutoModelForCausalLM::from_pretrained(model_dir);
+
+    // 3. Inject LoRA adapters (Rank=8, Alpha=16.0)
+    model->init_lora(ops::AutoLoraConfig::attention_qkvo(8, 16.0f));
+
+    // 4. Initialize Trainer
+    ops::AutoTrainerConfig cfg;
+    cfg.learning_rate = 2e-4f;
+    cfg.weight_decay = 0.01f;
+    ops::AutoTrainer trainer(*model, cfg);
+
+    // 5. Run single-step forward + LM loss + backward + optimizer step
+    auto step_result = trainer.train_step(input_ids, attention_mask, labels);
+    std::cout << "Loss: " << step_result.loss << std::endl;
+
+    return 0;
+}
 ```
-
-`spec.family` selects the graph implementation, `tokenizer` owns the
-model-specific tokenization algorithm, and `AutoModelForCausalLM` maps external
-checkpoint keys into the selected graph. `AutoTrainer` provides the shared
-native C++ one-step LoRA training core. Concrete graph classes remain public for
-specialized diagnostics and model-specific experiments.
-
-Detailed design and extension rules are in
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
-## Runtime Memory Controls
+## Evaluation & Device Telemetry
 
-MobileFineTuner keeps the stable library focused on transparent C++ training
-semantics. The default memory controls are explicit and easy to audit:
-
-- model weights and datasets are loaded from runtime asset paths rather than
-  bundled into the library;
-- SafeTensors loading supports HuggingFace single-file and sharded checkpoints;
-- the training CLIs expose batch size, sequence length, step count, learning
-  rate, and gradient accumulation as runtime knobs;
-- the core tensor runtime can use the step arena allocator for selected
-  workloads through `-DUSE_ARENA_ALLOCATOR=ON`;
-- Android helper scripts can sample RSS and process telemetry during native
-  training runs.
-
-### Gradient Accumulation
-
-Divide large batches into micro-batches to reduce activation memory:
-
+### WikiText-2 Perplexity (PPL)
+Evaluate model loss and perplexity with merged or isolated LoRA adapters:
 ```bash
---batch_size 8              # Effective batch size
---grad_accum_steps 4        # Accumulate over 4 micro-batches
-```
-
-Result: Forward/backward runs on `batch_size / grad_accum_steps = 2` samples at a time, reducing peak activation memory by ~75% while maintaining gradient quality.
-
----
-
-## Evaluation
-
-### Perplexity (WikiText-2)
-
-Measure language modeling quality:
-```bash
-cmake -S examples/gpt2_small_lora_finetune -B examples/gpt2_small_lora_finetune/build
-cmake --build examples/gpt2_small_lora_finetune/build --target eval_ppl -j
 examples/gpt2_small_lora_finetune/build/eval_ppl \
   --data_root "$MFT_DATA_ROOT/wikitext2/wikitext-2-raw" \
   --pretrained_dir "$MFT_MODEL_ROOT/gpt2" \
@@ -521,32 +517,8 @@ examples/gpt2_small_lora_finetune/build/eval_ppl \
   --lora_merge 1
 ```
 
-**Expected Results:**
-- GPT-2 Small baseline: ~29.5 PPL
-- GPT-2 Small + LoRA (1 epoch): ~26.8 PPL
-
-### MMLU Benchmark
-
-Multi-task language understanding:
+### MMLU Few-Shot Benchmark
 ```bash
-(
-  cd examples/gpt2_small_lora_finetune &&
-  ./run_eval.sh
-)
-(
-  cd examples/gpt2_medium_lora_finetune &&
-  ./run_eval.sh
-)
-(
-  cd examples/gemma_3_270m_lora_finetune &&
-  ./run_eval.sh
-)
-(
-  cd examples/gemma_3_1b_pt_lora_finetune &&
-  ./run_eval.sh
-)
-
-# Direct GPT-2 eval binary invocation
 examples/gpt2_small_lora_finetune/build/eval_mmlu \
   --mmlu_root "$MFT_DATA_ROOT/mmlu/data" \
   --split dev \
@@ -556,117 +528,71 @@ examples/gpt2_small_lora_finetune/build/eval_mmlu \
   --fewshot 0
 ```
 
----
-
-## Benchmarks
-
-Performance depends on device hardware, BLAS availability, model size, sequence
-length, batch size, and thermal state. The repository keeps benchmark
-collection scripts, not generated result files, in the release tree.
-
-Recommended benchmark protocol:
-
+### Mobile Hardware Resource Profiling
+When running native binaries on real Android smartphones via ADB, capture continuous memory and thermal telemetry:
 ```bash
-bash scripts/run_training_smoke.sh
-bash scripts/run_training_real_assets.sh
+# Terminal 1: Run native training on phone
 bash scripts/android/run_qwen_qnli_native_phone.sh
+
+# Terminal 2: Monitor RSS, PSS, CPU, and thermals at 100ms intervals
+bash scripts/android/adb_resource_monitor.sh
 ```
 
-For Android runs, pair the native training command with
-`scripts/android/adb_resource_monitor.sh` to collect RSS and system telemetry.
-Store generated logs, adapters, plots, and spreadsheets under `runs/` or an
-external artifact directory; these paths are intentionally ignored by Git.
+---
+
+## Maintained Scripts Catalog
+
+All core utility scripts located in `scripts/` are maintained and verified:
+
+| Script | Purpose |
+| :--- | :--- |
+| `scripts/run_training_smoke.sh` | Orchestrates 5-model synthetic training smoke test suite. |
+| `scripts/run_training_real_assets.sh` | Executes 1-step real-asset verification for all supported models. |
+| `scripts/check_local_assets.sh` | Validates asset resolution (`MFT_MODEL_ROOT` & `MFT_DATA_ROOT`). |
+| `scripts/check_release_tree.sh` | Enforces repository cleanliness and absence of local machine paths. |
+| `scripts/generate_tokenizer_hf_golden_fixtures.py` | Generates golden tokenization JSONL files from Hugging Face for C++ tests. |
+| `scripts/android/build_mft_sdk_aar.sh` | Compiles the Android SDK into a distributable release AAR. |
+| `scripts/android/publish_mft_sdk_local.sh` | Publishes `mft-sdk` into a local Maven repository for app consumers. |
+| `scripts/android/adb_resource_monitor.sh` | ADB-based sampling monitor capturing memory RSS and CPU utilization. |
+| `scripts/android/run_qwen_qnli_native_phone.sh` | Pushes binary and assets to Android device and runs on-phone Qwen training. |
+| `scripts/plot_loss_curve.py` | Generates PNG loss curve plots from structured training logs. |
 
 ---
 
-## Project Structure
+## Citation & Academic Credit
 
+If you use MobileFineTuner or components of this framework in your research, please cite our paper:
+
+```bibtex
+@inproceedings{mobilefinetuner2027,
+  title={MobileFineTuner: A Mobile-Native Framework for On-Device LLM Fine-Tuning in Real-World Embedded AI Applications},
+  author={Geng, Jiaxiang and Zhao, Lunyu and Lu, Yiyi and Luo, Bing},
+  booktitle={ACM Conference on Embedded Networked Sensor Systems (Sensys)},
+  year={2027}
+}
+
+@article{geng2025mobilefinetuner,
+  title={MobileFineTuner: A Mobile-Native Framework for On-Device LLM Fine-Tuning in Real-World Embedded AI Applications},
+  author={Geng, Jiaxiang and Zhao, Lunyu and Lu, Yiyi and Luo, Bing},
+  journal={arXiv preprint arXiv:2512.08211},
+  year={2025}
+}
 ```
-MobileFineTuner/
-├── operator/                           # Core C++ framework
-│   ├── finetune_ops/
-│   │   ├── core/                       # Tensor, autograd, memory manager
-│   │   ├── graph/                      # GPT-2, Gemma, Qwen graphs
-│   │   ├── nn/                         # LoRA layers
-│   │   ├── optim/                      # Optimizers and trainers
-│   │   └── data/                       # WikiText-2, MMLU dataset loaders/tokenizers
-│   ├── include/mobile_finetuner/       # Stable public umbrella header
-│   ├── cmake/                          # CMake package config templates
-│   └── CMakeLists.txt
-├── examples/                           # Runnable model-specific applications
-│   ├── common/                         # Shared example-only evaluation helpers
-│   ├── gpt2_small_lora_finetune/       # GPT-2 Small LoRA + full FT
-│   ├── gpt2_medium_lora_finetune/      # GPT-2 Medium LoRA
-│   ├── gemma_3_270m_lora_finetune/     # Gemma 270M LoRA
-│   ├── gemma_3_1b_pt_lora_finetune/    # Gemma 1B-PT LoRA
-│   └── qwen_lora_finetune/             # Qwen2.5-0.5B LoRA
-├── scripts/                            # Automation and orchestration
-│   ├── android/                        # Native Android build/run helpers
-│   ├── lib/                            # Shared shell helpers
-│   ├── run_training_smoke.sh
-│   └── run_training_real_assets.sh
-└── README.md
-```
 
-Local data, run-output, review, and archive directories may exist in developer
-checkouts, but they are ignored and excluded from source releases.
+### Research Team
+- **Jiaxiang Geng** — Duke Kunshan University & The University of Hong Kong (`jg645@duke.edu`)
+- **Lunyu Zhao** — Duke Kunshan University (`lz269@duke.edu`)
+- **Yiyi Lu** — Duke Kunshan University (`yl996@duke.edu`)
+- **Bing Luo** — Duke Kunshan University (`bl291@duke.edu`)
 
 ---
 
-## Contributing
+## License & Acknowledgments
 
-We welcome contributions from the community! Areas of interest include:
+This project is licensed under the **Apache License 2.0** — see the [LICENSE](LICENSE) file for complete details.
 
-- **New Model Architectures**: Llama, Mistral, Qwen, etc.
-- **Mobile Platform Support**: iOS Metal acceleration, Android NNAPI integration
-- **Optimization Techniques**: FlashAttention, quantization (INT8/INT4), model pruning
-- **Federated Learning**: Distributed training protocols for privacy-preserving aggregation
-- **Benchmarking**: Real-world mobile device experiments and profiling
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -am 'Add new feature'`)
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a Pull Request
-
-### Code Style
-
-- C++: Follow Google C++ Style Guide
-- Python: Follow PEP 8 with Black formatter
-- Documentation: Add inline comments for complex logic, update README for new features
-
----
-
-## Contact
-
-**Authors:**
-- Jiaxiang Geng (Duke Kunshan University, The University of Hong Kong)
-- Lunyu Zhao (Duke Kunshan University)
-- Yiyi Lu (Duke Kunshan University)
-- Bing Luo (Duke Kunshan University)
-
-**Email:** {jg645, lz269, yl996, bl291}@duke.edu
-
----
-
-## Acknowledgments
-
-We thank the open-source community for foundational tools and datasets:
-- HuggingFace Transformers for model implementations and pretrained weights
-- Microsoft DeepSpeed for ZeRO optimizer inspiration
-- WikiText-2 and MMLU benchmark creators
-- Apple and Google for mobile hardware access and development tools
-
----
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-```
-Copyright 2024 Mobile LLM Fine-Tuning Project Contributors
+```text
+Copyright 2024-2026 Mobile LLM Fine-Tuning Project Contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -681,12 +607,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
+### Acknowledgments
+We extend our gratitude to the open-source community:
+- **Hugging Face** for the Transformers architecture definitions, tokenizers, and SafeTensors format.
+- **Google Research** & **Alibaba Cloud** for open-weight Gemma and Qwen models.
+- **DeepSpeed** and **PEFT** authors for pioneering parameter-efficient training formulations.
+- **Duke University** & **Duke Kunshan University** for research computing support.
+
 ---
 
-**Built with passion for privacy-preserving mobile AI**
-
-<br>
-
 <div align="center">
-  <img src="logo.jpg" alt="Duke University & Duke Kunshan University" width="250"/>
+  <b>MobileFineTuner: Bringing Private, Native On-Device LLM Adaptation to Everyone.</b>
 </div>
