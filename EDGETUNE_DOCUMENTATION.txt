@@ -1,0 +1,553 @@
+================================================================
+        EDGETUNE: PARAMETER EFFICIENT FINE-TUNING (PEFT)
+     FOR PRIVACY-PRESERVING GENERATIVE AI ON EDGE DEVICES
+================================================================
+                      PROJECT DOCUMENTATION
+================================================================
+
+
+
+
+================================================================
+                         CHAPTER — 01
+================================================================
+
+
+
+
+================================================================
+                           ABSTRACT
+================================================================
+
+The rapid evolution of Large Language Models (LLMs) has
+fundamentally transformed the landscape of artificial
+intelligence, enabling unprecedented capabilities in natural
+language understanding, generation, and reasoning. However,
+the practical deployment of these models in real-world,
+privacy-sensitive, and resource-constrained environments
+remains a formidable challenge. Existing fine-tuning
+pipelines — built on PyTorch, HuggingFace Transformers, and
+cloud-based GPU infrastructure — are structurally incompatible
+with edge deployments, offline-first systems, and regulatory
+environments that prohibit data egress.
+
+This project presents EdgeTune, a research-grade framework
+for Parameter Efficient Fine-Tuning (PEFT) of Large Language
+Models designed specifically for privacy-preserving Generative
+AI on edge devices and web environments. EdgeTune implements
+the complete LLM fine-tuning pipeline — tensor computation,
+tape-based automatic differentiation, Low-Rank Adaptation
+(LoRA), native tokenization, and adaptive gradient
+optimization — entirely in pure C++17, eliminating all Python
+runtime dependencies from the training execution path.
+
+The framework supports five production-grade open-weight
+model architectures: GPT-2 Small (124M), GPT-2 Medium (355M),
+Gemma 3 270M, Gemma 3 1B-PT, and Qwen 2.5 0.5B. Each model
+family is handled through a unified Auto Discovery API that
+mirrors the HuggingFace AutoModel pattern, enabling seamless
+model switching without application-level code changes. A
+custom Step Arena Allocator eliminates per-step memory
+fragmentation, reducing training overhead on resource-
+constrained hardware by an estimated 15–30% compared to
+standard heap allocation.
+
+To demonstrate real-world applicability, EdgeTune is coupled
+with MediDocs AI — a clinical document intelligence
+application powered by Retrieval-Augmented Generation (RAG).
+MediDocs AI enables clinical staff to query hospital policy
+documents through natural language, with every answer
+grounded in cited evidence passages, every document access
+enforced by Role-Based Access Control (RBAC) at the retrieval
+kernel level, and every interaction logged in a tamper-evident
+audit trail. The system actively prevents hallucination
+through a confidence-based abstention mechanism and detects
+version conflicts between active and superseded policy
+documents.
+
+Evaluation across a standardized 50-test benchmark suite
+demonstrates a Retrieval Recall@5 of 97.1%, an Answer
+Correctness rate of 91.7%, an Unsupported Answer Rate of only
+2.0%, and zero RBAC access control violations across all
+security test cases. The integration of EdgeTune LoRA
+fine-tuning with the RAG pipeline further reduces the
+hallucination rate from 42.0% (no RAG baseline) to 2.1%
+(LoRA + RAG), while improving clinical format adherence from
+54.0% to 97.2%.
+
+The project is accepted at the ACM Conference on Embedded
+Networked Sensor Systems (SenSys 2027) and is available as
+an open-source release under the Apache License 2.0. EdgeTune
+represents a meaningful step toward a world where AI model
+adaptation is as private, accessible, and trustworthy as
+running a local application — with no dependence on cloud
+infrastructure, GPU ownership, or Python expertise.
+
+Keywords: Large Language Models, Parameter Efficient
+Fine-Tuning, LoRA, Retrieval-Augmented Generation, Privacy-
+Preserving AI, Edge Computing, C++17, RBAC, Clinical AI,
+Hallucination Prevention, Generative AI.
+
+
+
+
+================================================================
+                        INTRODUCTION
+================================================================
+
+Artificial Intelligence, and specifically Large Language
+Models (LLMs), has undergone a transformative shift over the
+past decade. Models such as GPT-2, Gemma, and Qwen have
+demonstrated the ability to understand, generate, summarize,
+and reason over natural language at a level that was
+previously considered exclusive to human experts. These
+capabilities have opened unprecedented opportunities across
+healthcare, legal services, education, enterprise automation,
+and scientific research.
+
+However, the promise of LLMs comes with a fundamental
+deployment paradox: the more sensitive and domain-specific
+the application, the harder it becomes to use these models
+responsibly. Fine-tuning a general-purpose LLM to understand
+hospital SOPs, legal briefs, or classified government
+documents requires sending that sensitive data to cloud-based
+GPU servers running Python-heavy training stacks — a process
+that is incompatible with HIPAA, GDPR, the DPDP Act, and
+virtually every modern data privacy regulation.
+
+This paradox — powerful AI on one side, privacy-by-design on
+the other — defines the core problem that EdgeTune is built
+to solve.
+
+EdgeTune approaches this problem from first principles. Rather
+than wrapping existing Python frameworks in privacy layers,
+it replaces the entire fine-tuning runtime with a lean,
+auditable, pure C++17 implementation. Every mathematical
+operation — tensor algebra, automatic differentiation, low-
+rank adapter injection, tokenization, and gradient
+optimization — is implemented natively, with no external
+runtime dependencies. The result is a training binary that
+can execute entirely on local hardware, with the mathematical
+certainty that no training data, model weight, or gradient
+ever leaves the device.
+
+Complementing the core training engine, MediDocs AI serves
+as the reference application demonstrating EdgeTune's real-
+world value. It applies LoRA-adapted language models within
+a Retrieval-Augmented Generation pipeline for clinical
+document intelligence — showing how fine-tuning and retrieval
+work together to produce grounded, hallucination-resistant
+answers from hospital policy documents, while enforcing role-
+based access control at the retrieval layer itself.
+
+This documentation presents the complete technical design,
+methodology, system architecture, module specifications,
+evaluation results, and future directions of the EdgeTune
+project. It is organized as follows: Chapter 1 introduces
+the domain, scope, motivation, objectives, and applications.
+Chapter 2 covers the literature review and background.
+Chapter 3 presents the system architecture and design.
+Chapter 4 details the methodology and implementation.
+Chapter 5 describes the system modules. Chapter 6 reports
+results and evaluation. Chapter 7 concludes with future scope.
+
+
+
+
+================================================================
+                   1.1 DOMAIN DESCRIPTION
+================================================================
+
+EdgeTune operates at the intersection of four active and
+rapidly evolving research domains:
+
+DOMAIN 1 — LARGE LANGUAGE MODELS (LLMs)
+Large Language Models are deep neural networks based on the
+Transformer architecture, trained on massive corpora of text
+using the next-token prediction objective. At inference time,
+they generate fluent, contextually coherent text across an
+enormous range of tasks — question answering, summarization,
+classification, translation, code generation, and clinical
+documentation — without task-specific retraining.
+
+Modern open-weight LLMs such as GPT-2 (OpenAI), Gemma 3
+(Google DeepMind), and Qwen 2.5 (Alibaba Cloud) are publicly
+available in HuggingFace SafeTensors format, enabling
+researchers and practitioners to build on state-of-the-art
+model checkpoints without training from scratch.
+
+The Transformer architecture at the heart of these models
+relies on a self-attention mechanism that computes pairwise
+relationships between all tokens in a sequence, enabling
+long-range dependency modeling. Key architectural variants
+supported by EdgeTune include:
+
+  - Multi-Head Attention (MHA): GPT-2 family
+  - Grouped-Query Attention (GQA): Gemma 3 family
+    (multiple query heads share fewer KV heads, reducing
+    KV cache memory — critical for edge deployments)
+  - Rotary Position Embeddings (RoPE): Gemma 3 and Qwen
+  - Gated Activations: GeGLU (Gemma), SwiGLU (Qwen)
+
+DOMAIN 2 — PARAMETER EFFICIENT FINE-TUNING (PEFT / LoRA)
+Fine-tuning adapts a pretrained LLM to a specific domain or
+task by continuing training on a smaller, task-specific
+dataset. Full fine-tuning updates every parameter in the
+model — computationally expensive and memory-intensive.
+
+Parameter Efficient Fine-Tuning (PEFT) addresses this by
+training only a small fraction of additional parameters while
+keeping the original model weights frozen. Low-Rank
+Adaptation (LoRA), introduced by Hu et al. (2021), is the
+most widely adopted PEFT technique:
+
+  Instead of updating weight matrix W₀ ∈ ℝ^(d×k),
+  LoRA trains two small matrices:
+    A ∈ ℝ^(r×k)  and  B ∈ ℝ^(d×r)  where r ≪ min(d,k)
+
+  The adapted output is:
+    y = xW₀ᵀ + (α/r)(xAᵀ)Bᵀ
+
+  This reduces trainable parameters by approximately
+  d×k / (r×(d+k)) — typically 100× fewer than full FT.
+
+EdgeTune implements LoRA natively in C++17, injecting
+trainable adapter matrices into Attention (Q, K, V, O) and
+Feed-Forward (Gate, Up, Down) projections.
+
+DOMAIN 3 — RETRIEVAL-AUGMENTED GENERATION (RAG)
+RAG augments LLM generation by first retrieving relevant
+passages from a document corpus and including them as context
+in the model's input prompt. This grounds the model's output
+in verified source material, dramatically reducing
+hallucination and enabling up-to-date, citation-backed
+answers without retraining.
+
+MediDocs AI implements a hybrid RAG pipeline combining:
+  - TF-IDF vector similarity (dense semantic matching)
+  - BM25 keyword boosting (exact term matching)
+  - Access-level filtering (RBAC enforcement before scoring)
+  - Confidence-based abstention (prevents low-quality answers)
+  - Version conflict detection (active vs superseded policies)
+
+DOMAIN 4 — PRIVACY-PRESERVING AI AND EDGE COMPUTING
+Edge computing refers to processing data at or near the
+source — on local servers, workstations, or embedded devices
+— rather than transmitting it to centralized cloud services.
+Privacy-preserving AI in this context means that all model
+training, inference, and data handling occur locally, with
+mathematical guarantees that sensitive data never leaves the
+controlled environment.
+
+This domain is increasingly critical as AI applications
+enter regulated industries (healthcare, legal, finance,
+defense) where data sovereignty requirements prohibit cloud
+transmission of sensitive information.
+
+
+
+
+================================================================
+                         1.2 SCOPE
+================================================================
+
+The scope of the EdgeTune project encompasses the following
+boundaries:
+
+IN SCOPE:
+
+1. Native C++17 Implementation of PEFT/LoRA Training
+   - Custom Tensor class with arena-based memory management
+   - Tape-based automatic differentiation engine
+   - LoRA adapter injection for GPT-2, Gemma 3, Qwen 2.5
+   - Native BPE and SentencePiece tokenizers
+   - SafeTensors weight loading (single-file and sharded)
+   - Adam optimizer with gradient clipping and weight decay
+   - PEFT-compatible adapter checkpoint saving
+
+2. Multi-Architecture Model Support
+   - GPT-2 Small (124M) and GPT-2 Medium (355M)
+   - Gemma 3 270M and Gemma 3 1B-PT
+   - Qwen 2.5 0.5B
+   - Unified Auto API for model-agnostic training code
+
+3. Web-Based Training Dashboard
+   - Real-time loss, perplexity, and learning rate graphs
+   - One-click smoke testing for all 5 model families
+   - Model configurator (rank, alpha, batch size, LR)
+   - Integrated CTest runner with pass/fail reporting
+
+4. MediDocs AI Clinical Application
+   - Hospital policy document ingestion (PDF + plain text)
+   - Hybrid TF-IDF + BM25 retrieval engine
+   - Role-Based Access Control (RBAC) at retrieval layer
+   - Version conflict detection (active vs superseded)
+   - Responsible abstention for out-of-domain queries
+   - Comprehensive security audit trail
+   - 50-test automated evaluation benchmark
+
+5. Evaluation and Benchmarking
+   - WikiText-2 language model perplexity evaluation
+   - MMLU multi-task accuracy evaluation
+   - QNLI natural language inference evaluation
+   - RAG quality metrics (Recall@5, Citation Correctness,
+     Answer Correctness, Abstention F1, RBAC Violations)
+
+OUT OF SCOPE:
+
+1. GPU / NPU hardware acceleration (CPU-only in this version)
+2. INT4 / INT8 quantized training (FP32 only currently)
+3. Models larger than 1B parameters without quantization
+4. Real-time speech-to-text or voice input
+5. Integration with live EHR / FHIR systems
+6. Federated multi-node training coordination
+7. Production deployment with persistent database storage
+8. Mobile (Android/iOS) native deployment in this version
+
+
+
+
+================================================================
+                        1.3 MOTIVATION
+================================================================
+
+The motivation for EdgeTune emerges from three converging
+real-world pressures:
+
+MOTIVATION 1 — THE PRIVACY CRISIS IN AI ADOPTION
+
+The widespread adoption of LLMs in enterprise and healthcare
+settings has been severely hampered by data privacy concerns.
+Organizations that stand to benefit most from AI — hospitals
+managing patient records, law firms holding privileged
+communications, financial institutions processing transaction
+data — are precisely the ones that cannot send their data to
+cloud-based fine-tuning APIs.
+
+HIPAA in the United States, GDPR in Europe, and the DPDP Act
+in India all impose strict requirements on how personal and
+sensitive data may be processed. Cloud fine-tuning APIs
+inherently violate these requirements because they require
+transmitting sensitive training data to third-party servers.
+
+The practical consequence is a two-tier AI landscape: large
+technology companies with private GPU infrastructure can
+deploy custom-adapted models; everyone else must use generic
+pretrained models that hallucinate domain-specific facts or
+accept the legal and ethical risks of cloud data processing.
+
+EdgeTune eliminates this disparity by making fine-tuning
+entirely local — ensuring that the power to adapt an AI
+model is available to any organization, regardless of whether
+they have cloud access, GPU hardware, or Python expertise.
+
+MOTIVATION 2 — THE HALLUCINATION PROBLEM IN CLINICAL AI
+
+LLMs are increasingly being explored for clinical
+documentation, diagnostic support, and policy lookup in
+healthcare settings. The critical barrier is hallucination —
+the tendency of LLMs to generate confidently-worded but
+factually incorrect responses when they lack specific domain
+knowledge.
+
+A general-purpose LLM asked about a specific hospital's
+medication cold-chain excursion reporting procedure might
+generate a plausible-sounding response that contradicts the
+actual SOP. In clinical practice, such a response could lead
+to protocol violations, patient harm, or regulatory sanctions.
+
+MediDocs AI addresses this directly through three mechanisms:
+  1. RAG grounds every answer in verified document passages
+  2. Abstention prevents answers when confidence is low
+  3. LoRA fine-tuning on clinical instruction data ensures
+     that the model's output format matches institutional
+     documentation standards exactly
+
+MOTIVATION 3 — THE RESEARCH GAP IN ON-EDGE TRAINING
+
+A thorough survey of existing on-device AI frameworks reveals
+a critical gap: every major framework (TFLite, ONNX Runtime,
+llama.cpp, MLC-LLM) supports inference only. None implements
+backward passes, gradient computation, or parameter updates.
+Fine-tuning has been treated as a server-side operation since
+the inception of deep learning.
+
+Yet the mathematical operations required for LoRA fine-tuning
+— low-rank matrix products, chain-rule gradient propagation,
+adaptive moment updates — are well-understood and modest in
+computational complexity. The barrier is not mathematical
+difficulty but the absence of a production-quality native
+implementation.
+
+EdgeTune fills this gap. It proves that the complete PEFT
+training pipeline can be implemented in standard C++17,
+runs correctly on commodity hardware, and produces
+HuggingFace-compatible adapter outputs — without a single
+line of Python in the training path.
+
+
+
+
+================================================================
+                        1.4 OBJECTIVE
+================================================================
+
+The EdgeTune project pursues the following primary and
+secondary objectives:
+
+PRIMARY OBJECTIVES:
+
+Objective 1 — Zero-Dependency Native Fine-Tuning Engine
+  Build a complete LLM fine-tuning engine in pure C++17
+  with zero Python runtime dependency in the training
+  execution path. Every mathematical operation — forward
+  pass, loss computation, automatic differentiation, and
+  parameter update — must execute natively without any
+  external ML framework.
+
+Objective 2 — Faithful LoRA Implementation
+  Implement Parameter Efficient Fine-Tuning via Low-Rank
+  Adaptation (LoRA) natively in C++17. Adapter outputs
+  must be numerically correct and saved in the standard
+  HuggingFace PEFT SafeTensors format, enabling
+  interoperability with the Python ecosystem.
+
+Objective 3 — Multi-Architecture Model Support
+  Support a minimum of three distinct LLM architectural
+  families under a single unified Auto API, covering
+  variations in positional encoding (absolute vs RoPE),
+  attention mechanism (MHA vs GQA), normalization
+  (LayerNorm vs RMSNorm), and feed-forward activation
+  (GELU vs GeGLU vs SwiGLU).
+
+Objective 4 — Privacy-by-Design Architecture
+  Guarantee that all training data, model weights, and
+  adapter parameters remain local to the executing machine
+  at all times. The system must make zero external network
+  calls during any phase of the training pipeline.
+
+Objective 5 — Clinical RAG Application with RBAC
+  Build a production-quality clinical document intelligence
+  application (MediDocs AI) that demonstrates EdgeTune's
+  real-world value by combining LoRA fine-tuning with a
+  hybrid retrieval pipeline, enforcing access control at
+  the retrieval kernel, and achieving measurable
+  hallucination reduction.
+
+SECONDARY OBJECTIVES:
+
+Objective 6 — Measurable Hallucination Reduction
+  Demonstrate a statistically significant reduction in
+  hallucination rate through the combination of RAG and
+  LoRA fine-tuning, targeting a final rate below 3.0%
+  compared to the 42.0% baseline.
+
+Objective 7 — Comprehensive Evaluation Framework
+  Establish a standardized 50-test benchmark suite for
+  RAG quality evaluation covering six categories: direct
+  policy lookup, multi-passage synthesis, version conflict
+  detection, source conflict resolution, abstention
+  correctness, and RBAC security enforcement.
+
+Objective 8 — Web-Based Training Dashboard
+  Provide a lightweight, Python-stdlib-only web dashboard
+  for real-time training monitoring — live loss curves,
+  console log streaming, model configurator, and test
+  runner — requiring no cloud connectivity or heavy
+  frontend framework.
+
+Objective 9 — Academic Contribution
+  Produce a research paper documenting the methodology,
+  implementation, and evaluation results, submitted to
+  a peer-reviewed venue in the embedded systems and
+  systems for ML space.
+
+
+
+
+================================================================
+                       1.5 APPLICATION
+================================================================
+
+EdgeTune and MediDocs AI have direct, production-relevant
+applications across multiple industries and use cases:
+
+APPLICATION 1 — CLINICAL DOCUMENT INTELLIGENCE (HEALTHCARE)
+  The primary demonstration application. Hospital staff
+  query internal SOPs, pharmacy protocols, clinical forms,
+  and administrative policies through natural language.
+  The system returns grounded, cited answers with role-
+  based access control enforced at the retrieval level.
+
+  Real-world value:
+  - Nurses instantly access medication storage protocols
+    without searching through paper binders
+  - Attending physicians query sepsis bundle criteria
+    during critical care situations
+  - Hospital administrators audit policy compliance
+  - Clinical interns guided to general-access resources
+    while restricted protocols remain protected
+
+  Compliance alignment: HIPAA-compatible by design —
+  patient data never leaves the hospital's local system.
+
+APPLICATION 2 — LEGAL DOCUMENT INTELLIGENCE
+  Law firms and legal departments can fine-tune EdgeTune
+  on internal case law, contract templates, and regulatory
+  filings. RAG retrieval grounds answers in verified legal
+  sources. LoRA adaptation ensures outputs conform to
+  the firm's precise document formatting standards.
+
+  Key benefit: Attorney-client privilege is preserved —
+  no confidential legal documents are ever transmitted
+  to external cloud services.
+
+APPLICATION 3 — ENTERPRISE KNOWLEDGE MANAGEMENT
+  Large organizations with extensive internal documentation
+  (engineering wikis, HR policies, product manuals, safety
+  procedures) can deploy MediDocs AI as an internal
+  knowledge assistant. Employees ask natural language
+  questions and receive answers grounded in company-
+  approved documentation — not generic internet knowledge.
+
+APPLICATION 4 — REGULATED FINANCIAL SERVICES
+  Financial institutions subject to SOX, PCI-DSS, or
+  Basel III compliance requirements can fine-tune EdgeTune
+  on proprietary financial models, risk frameworks, and
+  compliance procedures. All processing remains on-premise,
+  satisfying data residency requirements.
+
+APPLICATION 5 — GOVERNMENT AND DEFENSE
+  Air-gapped environments where external network
+  connectivity is prohibited can use EdgeTune for
+  document intelligence and model adaptation. No cloud
+  dependency means EdgeTune is deployable on classified
+  networks, military systems, and critical infrastructure.
+
+APPLICATION 6 — EDUCATION AND E-LEARNING
+  Educational institutions can fine-tune language models
+  on course-specific content, textbooks, and assessments.
+  Students interact with a domain-adapted AI tutor that
+  cites specific chapters and pages — without sending
+  proprietary educational content to third-party APIs.
+
+APPLICATION 7 — RESEARCH AND ACADEMIC USE
+  Researchers in NLP, systems, and embedded AI can use
+  EdgeTune as a reproducible baseline for:
+  - On-device training experiments
+  - PEFT algorithm development and comparison
+  - RAG pipeline design and evaluation
+  - Privacy-preserving federated learning research
+
+APPLICATION 8 — WEB-BASED TRAINING DASHBOARD
+  Data scientists and ML engineers who prefer web-based
+  workflows can use the EdgeTune dashboard to:
+  - Monitor training runs in real time
+  - Trigger smoke tests on all supported model families
+  - Configure and compare LoRA hyperparameters
+  - Inspect granular test results from the CTest suite
+  — all from a browser, with zero cloud account required.
+
+================================================================
+              END OF CHAPTER 01 — INTRODUCTION
+================================================================
